@@ -838,60 +838,145 @@ let newlyUnlockedIds = new Set();
     });
   }
 
-  // 飞猪 —— 特殊的飞行粒子
+  // 🐖 飞猪
   let flyingPig = {
-    type: 'pig',
-    x: canvas.width * 0.3,
-    y: canvas.height * 0.5,
-    size: 36,
-    speedX: 0.6,
-    speedY: 0.35,
-    phase: 0,
-    trail: [] // 尾迹
+    emoji: '🐖', name: 'pig',
+    x: canvas.width * 0.2, y: canvas.height * 0.4,
+    size: 40,
+    speedX: 0.7, speedY: 0.3,
+    phase: 0, trail: []
   };
+
+  // 🐕 飞狗
+  let flyingDog = {
+    emoji: '🐕', name: 'dog',
+    x: canvas.width * 0.7, y: canvas.height * 0.55,
+    size: 40,
+    speedX: -0.55, speedY: -0.25,
+    phase: 2.5, trail: []
+  };
+
+  // 彩蛋状态
+  let easterEgg = { active: false, timer: 0, hearts: [] };
+
+  function updateCreature(c) {
+    c.phase += 0.018;
+    c.x += c.speedX;
+    c.y += Math.sin(c.phase) * 1.0 + c.speedY * 0.4;
+
+    // 边界反弹 + 随机微调方向
+    if (c.x > canvas.width + 50) { c.x = -50; c.y = Math.random() * canvas.height * 0.6 + canvas.height * 0.15; }
+    if (c.x < -50) { c.x = canvas.width + 50; }
+    if (c.y > canvas.height * 0.88) { c.speedY = -Math.abs(c.speedY) - 0.1; }
+    if (c.y < canvas.height * 0.08) { c.speedY = Math.abs(c.speedY) + 0.1; }
+
+    // 尾迹
+    c.trail.push({ x: c.x, y: c.y, life: 1 });
+    if (c.trail.length > 14) c.trail.shift();
+    c.trail.forEach(t => t.life -= 0.07);
+  }
+
+  function drawCreature(ctx, c) {
+    // 尾迹
+    c.trail.forEach(t => {
+      if (t.life > 0) {
+        ctx.globalAlpha = t.life * 0.2;
+        ctx.font = '12px serif';
+        ctx.fillText('💨', t.x - 16, t.y + 2);
+      }
+    });
+
+    // 身体
+    ctx.globalAlpha = 0.75;
+    ctx.font = `${c.size}px serif`;
+    const facingRight = c.speedX > 0;
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.scale(facingRight ? 1 : -1, 1);
+    ctx.fillText(c.emoji, -c.size / 2, c.size / 2);
+
+    // 双翼
+    ctx.globalAlpha = 0.6;
+    ctx.font = `${c.size * 0.55}px serif`;
+    const wingFlap = Math.sin(c.phase * 4) * 4;
+    ctx.fillText('🪽', -c.size * 0.55, -c.size * 0.25 + wingFlap);   // 左翼
+    ctx.fillText('🪽', c.size * 0.05, -c.size * 0.25 - wingFlap);    // 右翼
+
+    // 头顶闪光
+    ctx.globalAlpha = 0.45 + Math.sin(c.phase * 3) * 0.15;
+    ctx.font = '14px serif';
+    ctx.fillText('✨', -c.size * 0.1, -c.size * 0.55);
+    ctx.restore();
+  }
 
   function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 更新飞猪位置 —— 正弦波飞行路径
-    flyingPig.phase += 0.02;
-    flyingPig.x += flyingPig.speedX;
-    flyingPig.y += Math.sin(flyingPig.phase) * 1.2 + flyingPig.speedY * 0.3;
+    updateCreature(flyingPig);
+    updateCreature(flyingDog);
 
-    // 边界反弹
-    if (flyingPig.x > canvas.width + 40) { flyingPig.x = -40; flyingPig.y = Math.random() * canvas.height * 0.7 + canvas.height * 0.1; }
-    if (flyingPig.x < -40) { flyingPig.x = canvas.width + 40; }
-    if (flyingPig.y > canvas.height * 0.85) { flyingPig.speedY = -Math.abs(flyingPig.speedY); }
-    if (flyingPig.y < canvas.height * 0.1) { flyingPig.speedY = Math.abs(flyingPig.speedY); }
+    // 距离检测
+    const dx = flyingPig.x - flyingDog.x;
+    const dy = flyingPig.y - flyingDog.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const closeEnough = dist < 120;
 
-    // 尾迹
-    flyingPig.trail.push({ x: flyingPig.x, y: flyingPig.y, life: 1 });
-    if (flyingPig.trail.length > 12) flyingPig.trail.shift();
-    flyingPig.trail.forEach(t => t.life -= 0.08);
-
-    // 画尾迹
-    flyingPig.trail.forEach(t => {
-      if (t.life > 0) {
-        ctx.globalAlpha = t.life * 0.25;
-        ctx.font = '14px serif';
-        ctx.fillText('💨', t.x - 20, t.y + 2);
+    // 彩蛋触发
+    if (closeEnough && !easterEgg.active) {
+      easterEgg.active = true;
+      easterEgg.timer = 90; // ~1.5 秒
+      // 爆爱心
+      for (let i = 0; i < 20; i++) {
+        easterEgg.hearts.push({
+          x: (flyingPig.x + flyingDog.x) / 2,
+          y: (flyingPig.y + flyingDog.y) / 2,
+          vx: (Math.random() - 0.5) * 4,
+          vy: (Math.random() - 0.5) * 4 - 1.5,
+          life: 1,
+          emoji: ['💕', '❤️', '💖', '💗', '💝', '✨'][Math.floor(Math.random() * 6)]
+        });
       }
+      // 互相弹开
+      const nx = dx / (dist || 1), ny = dy / (dist || 1);
+      flyingPig.speedX += nx * 1.5;
+      flyingPig.speedY += ny * 1.5;
+      flyingDog.speedX -= nx * 1.5;
+      flyingDog.speedY -= ny * 1.5;
+    }
+
+    if (easterEgg.active) {
+      easterEgg.timer--;
+      easterEgg.hearts.forEach(h => {
+        h.x += h.vx;
+        h.y += h.vy;
+        h.vy += 0.03; // 微重力
+        h.life -= 0.015;
+      });
+      easterEgg.hearts = easterEgg.hearts.filter(h => h.life > 0);
+      if (easterEgg.timer <= 0 && easterEgg.hearts.length === 0) {
+        easterEgg.active = false;
+      }
+    }
+
+    // 画彩蛋爱心
+    easterEgg.hearts.forEach(h => {
+      ctx.globalAlpha = h.life * 0.9;
+      ctx.font = `${16 + (1 - h.life) * 14}px serif`;
+      ctx.fillText(h.emoji, h.x, h.y);
     });
 
-    // 画飞猪
-    ctx.globalAlpha = 0.7;
-    ctx.font = `${flyingPig.size}px serif`;
-    // 根据飞行方向翻转
-    ctx.save();
-    ctx.translate(flyingPig.x, flyingPig.y);
-    ctx.scale(flyingPig.speedX > 0 ? 1 : -1, 1);
-    ctx.fillText('🐖', -flyingPig.size/2, flyingPig.size/2);
-    ctx.restore();
+    // 靠近时画连接线（虚线爱心）
+    if (closeEnough) {
+      ctx.globalAlpha = 0.25;
+      const mx = (flyingPig.x + flyingDog.x) / 2;
+      const my = (flyingPig.y + flyingDog.y) / 2;
+      ctx.font = '22px serif';
+      ctx.fillText('💫', mx - 11, my - 20);
+    }
 
-    // 画小翅膀/闪光
-    ctx.globalAlpha = 0.5;
-    ctx.font = '16px serif';
-    ctx.fillText('✨', flyingPig.x - 24, flyingPig.y - 18);
+    // 画两只生物
+    drawCreature(ctx, flyingPig);
+    drawCreature(ctx, flyingDog);
 
     // 画普通粒子
     particles.forEach(p => {
