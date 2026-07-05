@@ -1,0 +1,117 @@
+{
+  "_说明": "=== 男朋友后台控制面板 ===",
+  "_如何使用": {
+    "自动解锁": "每个活动设了 unlockTime，到时间自动解锁，你不用做任何事",
+    "手动提前解锁": "把某个活动的 forceUnlocked 改成 true，她刷新页面就能看到",
+    "修改后如何生效": "改完保存 → 运行 vercel --prod 重新部署（10秒搞定）"
+  },
+
+  "birthdayStar": "勇敢机智的77小狗",
+  "birthdayDate": "2026-07-07",
+  "heroMessage": "🎂 生日快乐，我的小狗！\n我捡到一份只有你可以打开的冒险指引，\n每解锁一项，飞猪就越早获得自由 💕",
+
+  "activities": [
+    {
+      "id": "shopping-spree",
+      "icon": "🛒",
+      "title": "购物车心愿单",
+      "subtitle": "清空你的心愿清单",
+      "unlockTime": "2026-07-06T08:00:00",
+      "forceUnlocked": false,
+      "color": "#FF7EB3",
+      "content": {
+        "heroEmoji": "🛍️",
+        "summary": "今天的第一个惊喜——你的购物车，我来清空！",
+        "items": [
+          { "name": "心愿单品 #1", "emoji": "👗", "note": "你上次说喜欢的那条裙子" },
+          { "name": "心愿单品 #2", "emoji": "💄", "note": "偷偷记下的色号" },
+          { "name": "心愿单品 #3", "emoji": "👜", "note": "配你最好看的那只包" }
+        ],
+        "closingLine": "随便买，今天没有预算上限 ✨"
+      }
+    },
+    {
+      "id": "dessert-tour",
+      "icon": "🍰",
+      "title": "甜品上海大作战",
+      "subtitle": "用舌尖丈量上海的甜度",
+      "unlockTime": "2026-07-06T11:00:00",
+      "forceUnlocked": false,
+      "color": "#FF9A56",
+      "content": {
+        "heroEmoji": "🗺️",
+        "summary": "带你横扫上海最值得吃的甜品店，一家一家打卡！",
+        "stops": [
+          { "name": "甜品店 #1", "area": "法租界", "mustTry": "招牌提拉米苏", "emoji": "🍮" },
+          { "name": "甜品店 #2", "area": "静安寺", "mustTry": "杨枝甘露", "emoji": "🥭" },
+          { "name": "甜品店 #3", "area": "永康路", "mustTry": "手冲+巴斯克", "emoji": "☕" },
+          { "name": "甜品店 #4", "area": "愚园路", "mustTry": "季节限定刨冰", "emoji": "🍧" }
+        ],
+        "mapNote": "（完整逛吃地图 + 路线攻略已就绪）",
+        "closingLine": "甜食自由的一天，准备好了吗？🍬"
+      }
+    },
+    {
+      "id": "rock-climbing",
+      "icon": "🧗",
+      "title": "人生新技能解锁",
+      "subtitle": "一起点亮攀岩成就",
+      "unlockTime": "2026-07-06T14:00:00",
+      "forceUnlocked": false,
+      "color": "#43B7B8",
+      "content": {
+        "heroEmoji": "🧗‍♀️",
+        "summary": "听说你想学攀岩很久了？今天就带你去！",
+        "details": [
+          { "label": "场地", "value": "已预约室内攀岩馆", "emoji": "📍" },
+          { "label": "教练", "value": "专业教练一对一指导", "emoji": "👨‍🏫" },
+          { "label": "难度", "value": "新手友好路线", "emoji": "⭐" },
+          { "label": "装备", "value": "全部已备好，人来就行", "emoji": "🎒" }
+        ],
+        "closingLine": "征服一面墙，解锁一个新自己！💪"
+      }
+    },
+    {
+      "id": "spanish-dinner",
+      "icon": "🥘",
+      "title": "共进西班牙晚餐",
+      "subtitle": "海鲜饭、Tapas 和你的笑容",
+      "unlockTime": "2026-07-06T18:00:00",
+      "forceUnlocked": false,
+      "color": "#D4494B",
+      "content": {
+        "heroEmoji": "🕯️",
+        "summary": "灯光调暗，蜡烛点亮，今晚只有美食和我们。",
+        "menu": [
+          { "course": "前菜", "dishes": "西班牙火腿 + 番茄面包 + 橄榄", "emoji": "🍖" },
+          { "course": "主菜", "dishes": "招牌海鲜饭 Paella", "emoji": "🥘" },
+          { "course": "小食", "dishes": "各式 Tapas 拼盘", "emoji": "🍤" },
+          { "course": "甜品", "dishes": "加泰罗尼亚焦糖布丁", "emoji": "🍮" }
+        ],
+        "wineNote": "配一瓶你喜欢的 Sangria 🍷",
+        "closingLine": "最好的晚餐，是和对的人一起吃 💕"
+      }
+    },
+    {
+      "id": "concert",
+      "icon": "🎵",
+      "title": "解锁音乐会体验",
+      "subtitle": "让旋律为这一天收尾",
+      "unlockTime": "2026-07-06T20:00:00",
+      "forceUnlocked": false,
+      "color": "#7B4FBF",
+      "content": {
+        "heroEmoji": "🎻",
+        "summary": "最后一份惊喜——两张音乐会门票，最好的座位。",
+        "details": [
+          { "label": "演出", "value": "（预留，等你来填）", "emoji": "🎼" },
+          { "label": "座位", "value": "最佳观赏位", "emoji": "💺" },
+          { "label": "时长", "value": "约 90 分钟", "emoji": "⏱️" }
+        ],
+        "closingLine": "音符落下，但这一天会一直在心里回响 🎶"
+      }
+    }
+  ],
+
+  "finalMessage": "所有的惊喜，都是因为喜欢你 ❤️\n生日快乐，每一天都要快乐。"
+}

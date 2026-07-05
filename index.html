@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- WeChat 分享优化 -->
+<meta property="og:title" content="🎂 生日惊喜旅程">
+<meta property="og:description" content="一份专属于你的惊喜，请查收 💕">
+<meta property="og:image" content="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+<title>🎂 生日惊喜旅程</title>
+<style>
+/* ========== CSS Variables ========== */
+:root {
+  --pink: #FF7EB3;
+  --pink-light: #FFD4E0;
+  --pink-bg: #FFF5F7;
+  --gold: #FFB347;
+  --gold-light: #FFE0B2;
+  --text: #4A3040;
+  --text-light: #8B6F7C;
+  --white: #FFFFFF;
+  --shadow: 0 4px 20px rgba(255, 126, 179, 0.15);
+  --shadow-lg: 0 12px 40px rgba(255, 126, 179, 0.2);
+  --radius: 20px;
+  --radius-sm: 12px;
+  --card-padding: 20px;
+}
+
+/* ========== Reset & Base ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  background: linear-gradient(180deg, #FFF0F3 0%, #FFF5F7 30%, #FFF0F3 100%);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  padding-bottom: 40px;
+  background-attachment: fixed;
+}
+
+/* ========== Particle Canvas ========== */
+#particles-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ========== Main Container ========== */
+.main-container {
+  position: relative;
+  z-index: 1;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* ========== Hero Section ========== */
+.hero {
+  text-align: center;
+  padding: 40px 20px 24px;
+  animation: fadeInDown 0.8s ease-out;
+}
+
+.hero-emoji {
+  font-size: 64px;
+  animation: float 3s ease-in-out infinite;
+  display: block;
+}
+
+.hero-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 8px;
+  line-height: 1.4;
+  white-space: pre-line;
+}
+
+.hero-subtitle {
+  font-size: 15px;
+  color: var(--text-light);
+  margin-top: 8px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+/* ========== Progress Bar ========== */
+.progress-section {
+  margin: 8px 0 24px;
+  padding: 0 4px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+.progress-stats {
+  font-weight: 600;
+  color: var(--pink);
+}
+
+.progress-bar-outer {
+  background: var(--pink-light);
+  border-radius: 10px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.progress-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--pink), var(--gold));
+  border-radius: 10px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 0%;
+}
+
+/* ========== Activity Cards ========== */
+.activities {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.card.locked {
+  opacity: 0.75;
+  cursor: default;
+}
+
+.card.unlocked-unopened {
+  cursor: pointer;
+  box-shadow: 0 0 0 2px var(--gold), var(--shadow-lg);
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.card.unlocked-unopened:active {
+  transform: scale(0.97);
+}
+
+.card.unlocked-opened {
+  box-shadow: var(--shadow-lg);
+}
+
+.card.newly-unlocked {
+  animation: unlockPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Card Header (always visible) */
+.card-header {
+  display: flex;
+  align-items: center;
+  padding: var(--card-padding);
+  gap: 14px;
+  position: relative;
+}
+
+.card-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+  transition: all 0.4s ease;
+}
+
+.locked .card-icon-wrap {
+  background: #F0E4EA !important;
+  filter: grayscale(0.5);
+}
+
+.card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.locked .card-title {
+  filter: blur(6px);
+  user-select: none;
+  color: #C4A6B5;
+  pointer-events: none;
+}
+
+.card-subtitle {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-top: 2px;
+}
+
+.locked .card-subtitle {
+  filter: blur(5px);
+  user-select: none;
+  color: #D4BCC8;
+}
+
+.card-status-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.locked .card-status-icon {
+  animation: gentlePulse 2s ease-in-out infinite;
+}
+
+/* Countdown */
+.countdown {
+  font-size: 12px;
+  color: var(--pink);
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.locked .countdown {
+  filter: none;
+}
+
+/* Unopened overlay */
+.unopened-overlay {
+  display: none;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(255,228,235,0.95), rgba(255,240,245,0.95));
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 2;
+  border-radius: var(--radius);
+}
+
+.unlocked-unopened .unopened-overlay {
+  display: flex;
+}
+
+.unopened-emoji {
+  font-size: 48px;
+  animation: float 2s ease-in-out infinite;
+}
+
+.unopened-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pink);
+}
+
+.unopened-hint {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* Card Content (expandable) */
+.card-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1), padding 0.6s ease;
+}
+
+.unlocked-opened .card-content {
+  max-height: 2000px;
+}
+
+.card-content-inner {
+  padding: 0 var(--card-padding) var(--card-padding);
+}
+
+.content-hero {
+  font-size: 48px;
+  text-align: center;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.content-summary {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--pink-bg);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+/* Content: Shopping Items */
+.content-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.content-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #FFFBFD;
+  border-radius: var(--radius-sm);
+  border: 1px solid #FEE4EC;
+}
+
+.item-emoji {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.item-info {
+  flex: 1;
+}
+
+.item-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.item-note {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 2px;
+}
+
+/* Content: Dessert Tour */
+.content-stops {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.stop-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: #FFFBFD;
+  border-radius: var(--radius-sm);
+  border: 1px solid #FEE4EC;
+  position: relative;
+}
+
+.stop-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--pink);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stop-emoji {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.stop-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.stop-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.stop-area {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.stop-musttry {
+  font-size: 12px;
+  color: var(--pink);
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+/* Content: Detail Cards */
+.content-detail-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.detail-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #FFFBFD;
+  border-radius: var(--radius-sm);
+  border: 1px solid #FEE4EC;
+}
+
+.detail-emoji { font-size: 24px; flex-shrink: 0; }
+.detail-label { font-size: 13px; color: var(--text-light); flex-shrink: 0; min-width: 36px; }
+.detail-value { font-size: 14px; font-weight: 600; color: var(--text); }
+
+/* Content: Menu */
+.content-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.menu-course {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #FFFBFD;
+  border-radius: var(--radius-sm);
+  border: 1px solid #FEE4EC;
+}
+
+.menu-emoji { font-size: 28px; flex-shrink: 0; }
+.menu-course-name { font-size: 12px; color: var(--text-light); font-weight: 600; text-transform: uppercase; min-width: 36px; }
+.menu-dishes { font-size: 14px; font-weight: 500; color: var(--text); }
+
+/* Content Closing */
+.content-closing {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pink);
+  padding: 12px;
+  background: linear-gradient(135deg, #FFF0F3, #FFF5F7);
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+}
+
+.content-mapnote {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.content-winenote {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-light);
+  margin-top: 8px;
+}
+
+/* Separator between cards */
+.card-separator {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.card-separator .sep-line {
+  width: 40px;
+  height: 1px;
+  background: var(--pink-light);
+}
+
+.card-separator .sep-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pink);
+}
+
+/* ========== Final Message ========== */
+.final-message {
+  text-align: center;
+  padding: 36px 20px;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.final-heart {
+  font-size: 48px;
+  display: block;
+  animation: float 2.5s ease-in-out infinite;
+}
+
+.final-text {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 12px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+/* ========== Admin Panel ========== */
+.admin-trigger {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.8);
+  border: 1px solid var(--pink-light);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100;
+  opacity: 0.5;
+  transition: opacity 0.3s;
+}
+
+.admin-trigger:hover { opacity: 1; }
+
+.admin-panel {
+  display: none;
+  position: fixed;
+  bottom: 70px;
+  right: 20px;
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+  padding: 20px;
+  z-index: 101;
+  width: 280px;
+  max-height: 60vh;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.admin-panel.visible { display: block; }
+
+.admin-panel h3 {
+  font-size: 15px;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.admin-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #FEE4EC;
+}
+
+.admin-item-name { font-weight: 500; font-size: 13px; }
+
+.admin-toggle {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-toggle.locked-btn {
+  background: #F0E4EA;
+  color: #8B6F7C;
+}
+
+.admin-toggle.unlocked-btn {
+  background: var(--pink);
+  color: white;
+}
+
+.admin-hint {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 12px;
+  text-align: center;
+}
+
+.admin-close {
+  display: block;
+  margin: 10px auto 0;
+  padding: 6px 20px;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* ========== Confetti Canvas ========== */
+#confetti-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 200;
+}
+
+/* ========== Animations ========== */
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes gentlePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 2px var(--gold), var(--shadow-lg); }
+  50% { box-shadow: 0 0 0 6px rgba(255,179,71,0.25), var(--shadow-lg); }
+}
+
+@keyframes unlockPop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.04); }
+  60% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+@keyframes openGift {
+  0% { transform: scale(1) rotate(0); }
+  25% { transform: scale(1.3) rotate(-5deg); }
+  50% { transform: scale(1.2) rotate(5deg); }
+  75% { transform: scale(1.1) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.opening-animation .unopened-emoji {
+  animation: openGift 0.6s ease-out;
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 360px) {
+  .hero-emoji { font-size: 48px; }
+  .hero-title { font-size: 24px; }
+  .card-title { font-size: 15px; }
+  .card-icon-wrap { width: 44px; height: 44px; font-size: 24px; border-radius: 14px; }
+  .card-header { padding: 16px; gap: 10px; }
+  .card-content-inner { padding: 0 16px 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- 粒子背景 -->
+<canvas id="particles-canvas"></canvas>
+
+<!-- 彩纸画布 -->
+<canvas id="confetti-canvas"></canvas>
+
+<!-- 主容器 -->
+<div class="main-container">
+
+  <!-- Hero -->
+  <section class="hero">
+    <span class="hero-emoji">🎂</span>
+    <h1 class="hero-title">生日快乐，小可爱！</h1>
+    <p class="hero-subtitle">我为你准备了一整天的惊喜旅程<br>每解锁一站，就离快乐更近一步 💕</p>
+  </section>
+
+  <!-- 进度条 -->
+  <div class="progress-section">
+    <div class="progress-header">
+      <span>🎀 惊喜解锁进度</span>
+      <span class="progress-stats" id="progress-stats">0/5</span>
+    </div>
+    <div class="progress-bar-outer">
+      <div class="progress-bar-inner" id="progress-bar"></div>
+    </div>
+  </div>
+
+  <!-- 活动卡片 -->
+  <div class="activities" id="activities-container">
+    <!-- JS 动态渲染 -->
+  </div>
+
+  <!-- 结尾 -->
+  <section class="final-message" id="final-message" style="display:none;">
+    <span class="final-heart">💕</span>
+    <p class="final-text">所有的惊喜，都是因为喜欢你 ❤️<br>生日快乐，每一天都要快乐。</p>
+  </section>
+
+</div>
+
+<!-- 管理面板触发器 -->
+<button class="admin-trigger" id="admin-trigger" title="管理">🔑</button>
+<div class="admin-panel" id="admin-panel">
+  <h3>🔧 后台控制面板</h3>
+  <div id="admin-items"></div>
+  <p class="admin-hint">⚠️ 手动解锁仅本设备生效<br>自动解锁到时间对所有设备生效</p>
+  <button class="admin-close" id="admin-close">关闭</button>
+</div>
+
+<script>
+// ==================== 主逻辑 ====================
+
+const CONFIG_URL = 'config.json';
+const PARTICLES_COUNT = 25;
+const CONFETTI_DURATION = 3000;
+
+let activities = [];
+let config = null;
+let newlyUnlockedIds = new Set();
+
+// ==================== 粒子背景 ====================
+(function initParticles() {
+  const canvas = document.getElementById('particles-canvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let animId;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const emojis = ['💕', '✨', '🌸', '💖', '🩷', '🎀', '💝', '🌟'];
+
+  for (let i = 0; i < PARTICLES_COUNT; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: 12 + Math.random() * 14,
+      speedY: 0.3 + Math.random() * 0.7,
+      speedX: (Math.random() - 0.5) * 0.5,
+      emoji: emojis[Math.floor(Math.random() * emojis.length)],
+      wobble: Math.random() * Math.PI * 2,
+      wobbleSpeed: 0.01 + Math.random() * 0.03,
+      opacity: 0.4 + Math.random() * 0.4
+    });
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.y -= p.speedY;
+      p.x += Math.sin(p.wobble) * p.speedX;
+      p.wobble += p.wobbleSpeed;
+      if (p.y < -40) { p.y = canvas.height + 40; p.x = Math.random() * canvas.width; }
+      if (p.x < -20) p.x = canvas.width + 20;
+      if (p.x > canvas.width + 20) p.x = -20;
+      ctx.globalAlpha = p.opacity;
+      ctx.font = `${p.size}px serif`;
+      ctx.fillText(p.emoji, p.x, p.y);
+    });
+    ctx.globalAlpha = 1;
+    animId = requestAnimationFrame(animate);
+  }
+  animate();
+})();
+
+// ==================== 彩纸特效 ====================
+function launchConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const colors = ['#FF7EB3','#FFB347','#FF6B8A','#FFD4E0','#FF9A56','#43B7B8','#D4494B','#7B4FBF'];
+  const shapes = ['❤️','✨','🎉','🌟','💖','🎀'];
+  let pieces = [];
+  const startTime = Date.now();
+
+  for (let i = 0; i < 80; i++) {
+    pieces.push({
+      x: Math.random() * canvas.width,
+      y: -20 - Math.random() * canvas.height * 0.5,
+      size: 10 + Math.random() * 20,
+      speedY: 1.5 + Math.random() * 4,
+      speedX: (Math.random() - 0.5) * 3,
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 8,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      shape: shapes[Math.floor(Math.random() * shapes.length)],
+      opacity: 1
+    });
+  }
+
+  function animateConfetti() {
+    const elapsed = Date.now() - startTime;
+    if (elapsed > CONFETTI_DURATION) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      p.y += p.speedY;
+      p.x += p.speedX;
+      p.rotation += p.rotationSpeed;
+      p.speedY += 0.03;
+      if (elapsed > CONFETTI_DURATION * 0.7) {
+        p.opacity = Math.max(0, 1 - (elapsed - CONFETTI_DURATION * 0.7) / (CONFETTI_DURATION * 0.3));
+      }
+      ctx.save();
+      ctx.globalAlpha = p.opacity;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation * Math.PI / 180);
+      ctx.font = `${p.size}px serif`;
+      ctx.fillText(p.shape, -p.size/2, p.size/2);
+      ctx.restore();
+    });
+    requestAnimationFrame(animateConfetti);
+  }
+  animateConfetti();
+}
+
+// ==================== 主初始化 ====================
+async function init() {
+  try {
+    const resp = await fetch(CONFIG_URL);
+    config = await resp.json();
+  } catch (e) {
+    console.warn('无法加载 config.json，使用默认配置');
+    config = getDefaultConfig();
+  }
+
+  // 读取本地存储的"已拆开"状态
+  const openedIds = JSON.parse(localStorage.getItem('birthday-opened') || '[]');
+
+  // 读取手动覆盖（来自管理面板的操作，跨会话保持）
+  const manualOverrides = JSON.parse(localStorage.getItem('birthday-manual-overrides') || '{}');
+
+  // 读取 hash 中的手动解锁覆盖（用于分享链接场景）
+  let hashOverrides = {};
+  try {
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      hashOverrides = JSON.parse(decodeURIComponent(atob(hash)));
+    }
+  } catch (e) { /* ignore */ }
+
+  const now = new Date();
+
+  activities = config.activities.map(act => {
+    const hashUnlocked = hashOverrides[act.id] === true;
+    const forceUnlocked = act.forceUnlocked === true;
+    const manualUnlocked = manualOverrides[act.id] === true;
+    const timeUnlocked = now >= new Date(act.unlockTime);
+    const isUnlocked = hashUnlocked || forceUnlocked || manualUnlocked || timeUnlocked;
+    const isOpened = openedIds.includes(act.id);
+
+    return {
+      ...act,
+      isUnlocked,
+      isOpened,
+      _manualOverride: manualUnlocked,
+      state: isUnlocked ? (isOpened ? 'unlocked-opened' : 'unlocked-unopened') : 'locked'
+    };
+  });
+
+  renderAll();
+  startCountdownTimers();
+  updateProgress();
+
+  // 检查是否有全新解锁的（之前锁着，现在解锁且未拆）
+  // 从 sessionStorage 记录已知的已解锁 ID
+  const knownUnlocked = JSON.parse(sessionStorage.getItem('birthday-known-unlocked') || '[]');
+  activities.forEach(act => {
+    if (act.isUnlocked && !act.isOpened && !knownUnlocked.includes(act.id)) {
+      newlyUnlockedIds.add(act.id);
+    }
+  });
+  sessionStorage.setItem('birthday-known-unlocked', JSON.stringify(
+    activities.filter(a => a.isUnlocked).map(a => a.id)
+  ));
+}
+
+function getDefaultConfig() {
+  return {
+    heroMessage: '🎂 生日快乐，我的小可爱！\n我为你准备了一整天的惊喜旅程，\n每解锁一站，就离快乐更近一步 💕',
+    finalMessage: '所有的惊喜，都是因为喜欢你 ❤️\n生日快乐，每一天都要快乐。',
+    activities: []
+  };
+}
+
+// ==================== 渲染 ====================
+function renderAll() {
+  // Hero
+  if (config.heroMessage) {
+    document.querySelector('.hero-subtitle').textContent = config.heroMessage;
+  }
+
+  // Cards
+  const container = document.getElementById('activities-container');
+  container.innerHTML = '';
+
+  activities.forEach((act, index) => {
+    const card = document.createElement('div');
+    card.className = `card ${act.state}`;
+    card.id = `card-${act.id}`;
+
+    if (newlyUnlockedIds.has(act.id)) {
+      card.classList.add('newly-unlocked');
+    }
+
+    // Color mapping for locked vs unlocked
+    const iconBgColor = act.state === 'locked' ? '#F0E4EA' : act.color;
+    const iconColor = act.state === 'locked' ? '#C4A6B5' : act.color;
+
+    card.innerHTML = `
+      <!-- 未拆封遮罩 -->
+      ${act.state === 'unlocked-unopened' ? `
+        <div class="unopened-overlay" data-action="open" data-id="${act.id}">
+          <span class="unopened-emoji">🎁</span>
+          <span class="unopened-text">有惊喜！点我拆开</span>
+          <span class="unopened-hint">👆 轻点礼物盒</span>
+        </div>
+      ` : '<div class="unopened-overlay" style="display:none;"></div>'}
+
+      <!-- 卡片头部 -->
+      <div class="card-header" data-action="${act.state === 'unlocked-unopened' ? 'open' : ''}" data-id="${act.id}">
+        <div class="card-icon-wrap" style="background:${iconBgColor};">
+          ${act.icon}
+        </div>
+        <div class="card-info">
+          <div class="card-title">${act.title}</div>
+          <div class="card-subtitle">${act.subtitle}</div>
+          ${act.state === 'locked' ? `<div class="countdown" id="countdown-${act.id}">计算中...</div>` : ''}
+        </div>
+        <div class="card-status-icon">
+          ${act.state === 'locked' ? '🔒' : (act.state === 'unlocked-unopened' ? '🔓' : '✨')}
+        </div>
+      </div>
+
+      <!-- 展开内容 -->
+      <div class="card-content">
+        <div class="card-content-inner">
+          ${renderContent(act)}
+        </div>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+
+  // 绑定事件
+  container.querySelectorAll('[data-action="open"]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = el.dataset.id;
+      openCard(id);
+    });
+  });
+
+  // 更新最终消息
+  const finalMsg = document.getElementById('final-message');
+  const allOpened = activities.every(a => a.state === 'unlocked-opened');
+  if (allOpened) {
+    finalMsg.style.display = 'block';
+    finalMsg.querySelector('.final-text').textContent = config.finalMessage || '所有的惊喜，都是因为喜欢你 ❤️';
+  }
+
+  // 更新管理面板
+  renderAdminPanel();
+}
+
+function renderContent(act) {
+  const c = act.content || {};
+  let html = '';
+
+  if (c.heroEmoji) {
+    html += `<span class="content-hero">${c.heroEmoji}</span>`;
+  }
+  if (c.summary) {
+    html += `<div class="content-summary">${c.summary}</div>`;
+  }
+
+  // 购物清单
+  if (c.items && c.items.length > 0) {
+    html += '<div class="content-items">';
+    c.items.forEach(item => {
+      html += `
+        <div class="content-item">
+          <span class="item-emoji">${item.emoji || '🎁'}</span>
+          <div class="item-info">
+            <div class="item-name">${item.name}</div>
+            ${item.note ? `<div class="item-note">${item.note}</div>` : ''}
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+  }
+
+  // 甜品站
+  if (c.stops && c.stops.length > 0) {
+    html += '<div class="content-stops">';
+    c.stops.forEach((stop, i) => {
+      html += `
+        <div class="stop-card">
+          <span class="stop-number">${i + 1}</span>
+          <span class="stop-emoji">${stop.emoji || '🍰'}</span>
+          <div class="stop-info">
+            <div class="stop-name">${stop.name}</div>
+            <div class="stop-area">${stop.area}</div>
+            <div class="stop-musttry">必点：${stop.mustTry}</div>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    if (c.mapNote) {
+      html += `<div class="content-mapnote">${c.mapNote}</div>`;
+    }
+  }
+
+  // 详情卡片 (攀岩 / 音乐会)
+  if (c.details && c.details.length > 0) {
+    html += '<div class="content-detail-cards">';
+    c.details.forEach(d => {
+      html += `
+        <div class="detail-card">
+          <span class="detail-emoji">${d.emoji || '📍'}</span>
+          <span class="detail-label">${d.label}</span>
+          <span class="detail-value">${d.value}</span>
+        </div>
+      `;
+    });
+    html += '</div>';
+  }
+
+  // 菜单 (西班牙晚餐)
+  if (c.menu && c.menu.length > 0) {
+    html += '<div class="content-menu">';
+    c.menu.forEach(m => {
+      html += `
+        <div class="menu-course">
+          <span class="menu-emoji">${m.emoji || '🍽️'}</span>
+          <span class="menu-course-name">${m.course}</span>
+          <span class="menu-dishes">${m.dishes}</span>
+        </div>
+      `;
+    });
+    html += '</div>';
+    if (c.wineNote) {
+      html += `<div class="content-winenote">${c.wineNote}</div>`;
+    }
+  }
+
+  if (c.closingLine) {
+    html += `<div class="content-closing">${c.closingLine}</div>`;
+  }
+
+  return html;
+}
+
+// ==================== 拆礼物交互 ====================
+function openCard(id) {
+  const card = document.getElementById(`card-${id}`);
+  if (!card || !card.classList.contains('unlocked-unopened')) return;
+
+  // 播放开箱动画
+  card.classList.add('opening-animation');
+  launchConfetti();
+
+  setTimeout(() => {
+    // 状态更新
+    card.classList.remove('unlocked-unopened', 'opening-animation');
+    card.classList.add('unlocked-opened');
+
+    // 隐藏礼物盒遮罩
+    const overlay = card.querySelector('.unopened-overlay');
+    if (overlay) overlay.style.display = 'none';
+
+    // 更新锁图标
+    const statusIcon = card.querySelector('.card-status-icon');
+    if (statusIcon) statusIcon.textContent = '✨';
+
+    // 展开内容区（移除最大高度限制）
+    const content = card.querySelector('.card-content');
+    if (content) content.style.maxHeight = content.scrollHeight + 'px';
+
+    // 保存"已拆开"状态
+    const openedIds = JSON.parse(localStorage.getItem('birthday-opened') || '[]');
+    if (!openedIds.includes(id)) {
+      openedIds.push(id);
+      localStorage.setItem('birthday-opened', JSON.stringify(openedIds));
+    }
+
+    // 更新内存状态
+    const act = activities.find(a => a.id === id);
+    if (act) {
+      act.state = 'unlocked-opened';
+      act.isOpened = true;
+      newlyUnlockedIds.delete(id);
+    }
+
+    // 更新进度条和面板（不重新渲染所有卡片）
+    updateProgress();
+    if (document.getElementById('admin-panel').classList.contains('visible')) {
+      renderAdminPanel();
+    }
+
+    // 检查是否全部拆完
+    const allOpened = activities.every(a => a.state === 'unlocked-opened');
+    if (allOpened) {
+      document.getElementById('final-message').style.display = 'block';
+      setTimeout(() => launchConfetti(), 500);
+    }
+  }, 600);
+}
+
+// ==================== 进度条 ====================
+function updateProgress() {
+  const unlocked = activities.filter(a => a.isUnlocked).length;
+  const total = activities.length;
+  const pct = total > 0 ? Math.round((unlocked / total) * 100) : 0;
+
+  document.getElementById('progress-stats').textContent = `${unlocked}/${total}`;
+  document.getElementById('progress-bar').style.width = `${pct}%`;
+
+  // 最终消息
+  const allOpened = activities.every(a => a.state === 'unlocked-opened');
+  if (allOpened) {
+    document.getElementById('final-message').style.display = 'block';
+  }
+}
+
+// ==================== 倒计时 ====================
+let countdownIntervals = [];
+
+function startCountdownTimers() {
+  countdownIntervals.forEach(clearInterval);
+  countdownIntervals = [];
+
+  activities.forEach(act => {
+    if (act.state === 'locked') {
+      const el = document.getElementById(`countdown-${act.id}`);
+      if (!el) return;
+
+      const update = () => {
+        const now = new Date();
+        const target = new Date(act.unlockTime);
+        const diff = target - now;
+
+        if (diff <= 0) {
+          el.textContent = '即将解锁...';
+          // 自动刷新
+          setTimeout(() => {
+            location.reload();
+          }, 3000);
+          return;
+        }
+
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        if (hours > 0) {
+          el.textContent = `⏳ ${hours}小时${minutes}分钟后解锁`;
+        } else if (minutes > 0) {
+          el.textContent = `⏳ ${minutes}分${seconds}秒后解锁`;
+        } else {
+          el.textContent = `⏳ ${seconds}秒后解锁`;
+        }
+      };
+
+      update();
+      const interval = setInterval(update, 1000);
+      countdownIntervals.push(interval);
+    }
+  });
+}
+
+// ==================== 管理面板 ====================
+function renderAdminPanel() {
+  const container = document.getElementById('admin-items');
+  container.innerHTML = '';
+
+  activities.forEach(act => {
+    const div = document.createElement('div');
+    div.className = 'admin-item';
+    const unlockedByTime = new Date() >= new Date(act.unlockTime);
+    const unlockedByManual = act._manualOverride === true;
+    div.innerHTML = `
+      <span class="admin-item-name">${act.icon} ${act.title}</span>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span style="font-size:10px;color:var(--text-light);">${unlockedByTime ? '⏰已到' : '⏰未到'}</span>
+        <button class="admin-toggle ${act.isUnlocked ? 'unlocked-btn' : 'locked-btn'}"
+                data-id="${act.id}">
+          ${act.isUnlocked ? '已解锁 ✓' : '锁定中'}
+        </button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+
+  // 绑定切换事件 - 直接修改状态，不刷新页面
+  container.querySelectorAll('.admin-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const act = activities.find(a => a.id === id);
+      if (!act) return;
+
+      // 切换手动覆盖状态
+      if (act.isUnlocked && !act._manualOverride) {
+        // 时间解锁的不能重新锁定（只能手动锁手动解锁的）
+        return;
+      }
+
+      if (act.isUnlocked) {
+        // 重新锁定
+        act.isUnlocked = false;
+        act._manualOverride = false;
+        act.isOpened = false;
+        act.state = 'locked';
+        // 从 opened 列表中移除
+        const openedIds = JSON.parse(localStorage.getItem('birthday-opened') || '[]');
+        const idx = openedIds.indexOf(id);
+        if (idx >= 0) openedIds.splice(idx, 1);
+        localStorage.setItem('birthday-opened', JSON.stringify(openedIds));
+      } else {
+        // 手动解锁
+        act.isUnlocked = true;
+        act._manualOverride = true;
+        act.isOpened = false;
+        act.state = 'unlocked-unopened';
+        newlyUnlockedIds.add(id);
+      }
+
+      // 保存手动覆盖到 localStorage（跨会话保持）
+      const manualOverrides = JSON.parse(localStorage.getItem('birthday-manual-overrides') || '{}');
+      if (act.isUnlocked && act._manualOverride) {
+        manualOverrides[id] = true;
+      } else {
+        delete manualOverrides[id];
+      }
+      localStorage.setItem('birthday-manual-overrides', JSON.stringify(manualOverrides));
+
+      renderAll();
+      updateProgress();
+      startCountdownTimers();
+      renderAdminPanel();
+    });
+  });
+}
+
+function isTimeUnlocked(act) {
+  return new Date() >= new Date(act.unlockTime);
+}
+
+// 管理面板显示/隐藏
+let adminTapCount = 0;
+let adminTapTimer = null;
+
+document.getElementById('admin-trigger').addEventListener('click', () => {
+  adminTapCount++;
+  if (adminTapCount >= 3) {
+    const panel = document.getElementById('admin-panel');
+    panel.classList.toggle('visible');
+    if (panel.classList.contains('visible')) {
+      renderAdminPanel();
+    }
+    adminTapCount = 0;
+  }
+  clearTimeout(adminTapTimer);
+  adminTapTimer = setTimeout(() => { adminTapCount = 0; }, 1000);
+});
+
+document.getElementById('admin-close').addEventListener('click', () => {
+  document.getElementById('admin-panel').classList.remove('visible');
+  adminTapCount = 0;
+});
+
+// ==================== 启动 ====================
+window.addEventListener('DOMContentLoaded', init);
+
+// 定期检查是否有活动到时间自动解锁（每分钟检查，自动刷新 UI）
+setInterval(() => {
+  let changed = false;
+  activities.forEach(act => {
+    if (act.state === 'locked' && new Date() >= new Date(act.unlockTime)) {
+      act.isUnlocked = true;
+      act.state = 'unlocked-unopened';
+      act.isOpened = false;
+      newlyUnlockedIds.add(act.id);
+      changed = true;
+    }
+  });
+  if (changed) {
+    renderAll();
+    updateProgress();
+    startCountdownTimers();
+    // 更新 session
+    sessionStorage.setItem('birthday-known-unlocked', JSON.stringify(
+      activities.filter(a => a.isUnlocked).map(a => a.id)
+    ));
+  }
+}, 30000);
+
+// ==================== 处理 WeChat 内 JS-SDK 兼容 ====================
+document.addEventListener('touchmove', function(e) {
+  if (e.target.closest('.admin-panel')) return;
+}, { passive: true });
+</script>
+</body>
+</html>
