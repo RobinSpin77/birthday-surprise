@@ -582,27 +582,6 @@ body {
 }
 
 /* ========== Admin Panel ========== */
-.admin-trigger {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.8);
-  border: 1px solid var(--pink-light);
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 100;
-  opacity: 0.5;
-  transition: opacity 0.3s;
-}
-
-.admin-trigger:hover { opacity: 1; }
-
 .admin-panel {
   display: none;
   position: fixed;
@@ -808,8 +787,7 @@ body {
 
 </div>
 
-<!-- 管理面板触发器 -->
-<button class="admin-trigger" id="admin-trigger" title="管理">🔑</button>
+<!-- 管理面板（长按蛋糕 emoji 3秒 或 URL 加 ?admin 打开） -->
 <div class="admin-panel" id="admin-panel">
   <h3>🔧 后台控制面板</h3>
   <div id="admin-items"></div>
@@ -980,6 +958,12 @@ async function init() {
   startCountdownTimers();
   startBirthdayCountdown();
   updateProgress();
+
+  // URL 参数 ?admin 自动打开管理面板
+  if (window.location.search.includes('admin')) {
+    document.getElementById('admin-panel').classList.add('visible');
+    renderAdminPanel();
+  }
 
   // 检查是否有全新解锁的（之前锁着，现在解锁且未拆）
   // 从 sessionStorage 记录已知的已解锁 ID
@@ -1412,27 +1396,44 @@ function isTimeUnlocked(act) {
   return new Date() >= new Date(act.unlockTime);
 }
 
-// 管理面板显示/隐藏
-let adminTapCount = 0;
-let adminTapTimer = null;
+// 管理面板显示/隐藏：长按蛋糕 🎂 3 秒，或 URL 加 ?admin
+let adminLongPressTimer = null;
 
-document.getElementById('admin-trigger').addEventListener('click', () => {
-  adminTapCount++;
-  if (adminTapCount >= 8) {
+document.querySelector('.hero-emoji').addEventListener('touchstart', (e) => {
+  adminLongPressTimer = setTimeout(() => {
     const panel = document.getElementById('admin-panel');
-    panel.classList.toggle('visible');
-    if (panel.classList.contains('visible')) {
-      renderAdminPanel();
-    }
-    adminTapCount = 0;
-  }
-  clearTimeout(adminTapTimer);
-  adminTapTimer = setTimeout(() => { adminTapCount = 0; }, 3000);
+    panel.classList.add('visible');
+    renderAdminPanel();
+    // 震动反馈（支持的话）
+    if (navigator.vibrate) navigator.vibrate(50);
+  }, 3000);
+}, { passive: true });
+
+document.querySelector('.hero-emoji').addEventListener('touchend', () => {
+  clearTimeout(adminLongPressTimer);
 });
+document.querySelector('.hero-emoji').addEventListener('touchmove', () => {
+  clearTimeout(adminLongPressTimer);
+});
+
+// 桌面端兼容：鼠标长按
+document.querySelector('.hero-emoji').addEventListener('mousedown', (e) => {
+  adminLongPressTimer = setTimeout(() => {
+    const panel = document.getElementById('admin-panel');
+    panel.classList.add('visible');
+    renderAdminPanel();
+  }, 3000);
+});
+document.querySelector('.hero-emoji').addEventListener('mouseup', () => {
+  clearTimeout(adminLongPressTimer);
+});
+document.querySelector('.hero-emoji').addEventListener('mouseleave', () => {
+  clearTimeout(adminLongPressTimer);
+});
+
 
 document.getElementById('admin-close').addEventListener('click', () => {
   document.getElementById('admin-panel').classList.remove('visible');
-  adminTapCount = 0;
 });
 
 // ==================== 启动 ====================
