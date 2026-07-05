@@ -93,6 +93,58 @@ body {
   white-space: pre-line;
 }
 
+/* ========== Birthday Countdown ========== */
+.countdown-section {
+  text-align: center;
+  padding: 0 20px 16px;
+}
+
+.countdown-label {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.countdown-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.countdown-unit {
+  background: white;
+  border-radius: 14px;
+  padding: 10px 6px;
+  min-width: 62px;
+  box-shadow: 0 2px 12px rgba(255,126,179,0.12);
+}
+
+.countdown-num {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--pink);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+}
+
+.countdown-unit-label {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.countdown-separator {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--pink-light);
+  display: flex;
+  align-items: center;
+  padding-bottom: 16px;
+}
+
 /* ========== Progress Bar ========== */
 .progress-section {
   margin: 8px 0 24px;
@@ -706,6 +758,32 @@ body {
     <p class="hero-subtitle">我为你准备了一整天的惊喜旅程<br>每解锁一站，就离快乐更近一步 💕</p>
   </section>
 
+  <!-- 生日倒计时 -->
+  <div class="countdown-section">
+    <div class="countdown-label">🕯️ 距离你的生日还有</div>
+    <div class="countdown-row">
+      <div class="countdown-unit">
+        <div class="countdown-num" id="cd-days">00</div>
+        <div class="countdown-unit-label">天</div>
+      </div>
+      <div class="countdown-separator">:</div>
+      <div class="countdown-unit">
+        <div class="countdown-num" id="cd-hours">00</div>
+        <div class="countdown-unit-label">时</div>
+      </div>
+      <div class="countdown-separator">:</div>
+      <div class="countdown-unit">
+        <div class="countdown-num" id="cd-mins">00</div>
+        <div class="countdown-unit-label">分</div>
+      </div>
+      <div class="countdown-separator">:</div>
+      <div class="countdown-unit">
+        <div class="countdown-num" id="cd-secs">00</div>
+        <div class="countdown-unit-label">秒</div>
+      </div>
+    </div>
+  </div>
+
   <!-- 进度条 -->
   <div class="progress-section">
     <div class="progress-header">
@@ -900,6 +978,7 @@ async function init() {
 
   renderAll();
   startCountdownTimers();
+  startBirthdayCountdown();
   updateProgress();
 
   // 检查是否有全新解锁的（之前锁着，现在解锁且未拆）
@@ -1151,6 +1230,44 @@ function openCard(id) {
       setTimeout(() => launchConfetti(), 500);
     }
   }, 600);
+}
+
+// ==================== 生日倒计时 ====================
+let birthdayCountdownTimer = null;
+
+function startBirthdayCountdown() {
+  const target = new Date(config.birthdayDate + 'T00:00:00');
+  if (isNaN(target.getTime())) return;
+
+  if (birthdayCountdownTimer) clearInterval(birthdayCountdownTimer);
+
+  const update = () => {
+    const now = new Date();
+    const diff = target - now;
+
+    if (diff <= 0) {
+      document.querySelector('.countdown-label').textContent = '🎉 今天就是你的生日！';
+      document.getElementById('cd-days').textContent = '🎂';
+      document.getElementById('cd-hours').textContent = '🥳';
+      document.getElementById('cd-mins').textContent = '💕';
+      document.getElementById('cd-secs').textContent = '🎉';
+      clearInterval(birthdayCountdownTimer);
+      return;
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+    document.getElementById('cd-days').textContent = String(days).padStart(2, '0');
+    document.getElementById('cd-hours').textContent = String(hours).padStart(2, '0');
+    document.getElementById('cd-mins').textContent = String(mins).padStart(2, '0');
+    document.getElementById('cd-secs').textContent = String(secs).padStart(2, '0');
+  };
+
+  update();
+  birthdayCountdownTimer = setInterval(update, 1000);
 }
 
 // ==================== 进度条 ====================
