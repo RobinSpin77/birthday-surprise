@@ -405,6 +405,27 @@ body {
   margin-top: 2px;
 }
 
+/* 快递状态 */
+.item-status-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.status-delivered { background: #E8F5E9; color: #2E7D32; }
+.status-transit   { background: #FFF3E0; color: #E65100; }
+.status-pending   { background: #F5F5F5; color: #9E9E9E; }
+
+.item-blurred .item-name,
+.item-blurred .item-note {
+  filter: blur(6px);
+  user-select: none;
+}
+.item-blurred .item-emoji {
+  filter: blur(8px) grayscale(0.5);
+}
+
 /* Content: Dessert Tour */
 .content-stops {
   display: flex;
@@ -1223,17 +1244,32 @@ function renderContent(act) {
     html += `<div class="content-summary">${c.summary}</div>`;
   }
 
-  // 购物清单
+  // 购物清单（支持快递状态）
   if (c.items && c.items.length > 0) {
     html += '<div class="content-items">';
     c.items.forEach(item => {
+      const status = item.status || '';
+      const isDelivered = status === '已到小笨家';
+      const isTransit = status === '运输中';
+      const blurClass = isDelivered ? '' : 'item-blurred';
+
+      let badgeHtml = '';
+      if (status === '已到小笨家') {
+        badgeHtml = '<span class="item-status-badge status-delivered">已送达 ✅</span>';
+      } else if (status === '运输中') {
+        badgeHtml = '<span class="item-status-badge status-transit">运输中 🚚</span>';
+      } else if (status === '未发货') {
+        badgeHtml = '<span class="item-status-badge status-pending">待发货 📦</span>';
+      }
+
       html += `
-        <div class="content-item">
+        <div class="content-item ${blurClass}">
           <span class="item-emoji">${item.emoji || '🎁'}</span>
           <div class="item-info">
-            <div class="item-name">${item.name}</div>
-            ${item.note ? `<div class="item-note">${item.note}</div>` : ''}
+            <div class="item-name">${isDelivered ? item.name : (isTransit ? '运输中…' : '待签收…')}</div>
+            ${isDelivered && item.note ? `<div class="item-note">${item.note}</div>` : ''}
           </div>
+          ${badgeHtml}
         </div>
       `;
     });
