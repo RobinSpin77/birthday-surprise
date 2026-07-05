@@ -1538,18 +1538,37 @@ function isTimeUnlocked(act) {
   return new Date() >= new Date(act.unlockTime);
 }
 
-// 管理面板显示/隐藏：长按蛋糕 🎂 3 秒，或 URL 加 ?admin
+// 管理面板显示/隐藏：长按蛋糕 🎂 5 秒 + 再点一下，或 URL 加 ?admin
 let adminLongPressTimer = null;
+let adminPrimed = false;
+let adminPrimeTimer = null;
 
+function openAdminPanel() {
+  const panel = document.getElementById('admin-panel');
+  panel.classList.add('visible');
+  renderAdminPanel();
+  if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+  adminPrimed = false;
+  clearTimeout(adminPrimeTimer);
+}
+
+function primeAdmin() {
+  adminPrimed = true;
+  if (navigator.vibrate) navigator.vibrate(20);
+  // 3 秒内不点击则重置
+  clearTimeout(adminPrimeTimer);
+  adminPrimeTimer = setTimeout(() => { adminPrimed = false; }, 3000);
+}
+
+// 触屏：长按 5 秒 → 松手 prime → 再点一下打开
 document.querySelector('.hero-emoji').addEventListener('touchstart', (e) => {
-  adminLongPressTimer = setTimeout(() => {
-    const panel = document.getElementById('admin-panel');
-    panel.classList.add('visible');
-    renderAdminPanel();
-    // 震动反馈（支持的话）
-    if (navigator.vibrate) navigator.vibrate(50);
-  }, 3000);
-}, { passive: true });
+  if (adminPrimed) {
+    e.preventDefault();
+    openAdminPanel();
+    return;
+  }
+  adminLongPressTimer = setTimeout(primeAdmin, 5000);
+}, { passive: false });
 
 document.querySelector('.hero-emoji').addEventListener('touchend', () => {
   clearTimeout(adminLongPressTimer);
@@ -1558,13 +1577,13 @@ document.querySelector('.hero-emoji').addEventListener('touchmove', () => {
   clearTimeout(adminLongPressTimer);
 });
 
-// 桌面端兼容：鼠标长按
+// 桌面端：鼠标长按 5 秒 → 松手 prime → 再点一下打开
 document.querySelector('.hero-emoji').addEventListener('mousedown', (e) => {
-  adminLongPressTimer = setTimeout(() => {
-    const panel = document.getElementById('admin-panel');
-    panel.classList.add('visible');
-    renderAdminPanel();
-  }, 3000);
+  if (adminPrimed) {
+    openAdminPanel();
+    return;
+  }
+  adminLongPressTimer = setTimeout(primeAdmin, 5000);
 });
 document.querySelector('.hero-emoji').addEventListener('mouseup', () => {
   clearTimeout(adminLongPressTimer);
@@ -1572,7 +1591,6 @@ document.querySelector('.hero-emoji').addEventListener('mouseup', () => {
 document.querySelector('.hero-emoji').addEventListener('mouseleave', () => {
   clearTimeout(adminLongPressTimer);
 });
-
 
 document.getElementById('admin-close').addEventListener('click', () => {
   document.getElementById('admin-panel').classList.remove('visible');
