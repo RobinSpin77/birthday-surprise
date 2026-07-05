@@ -45,14 +45,15 @@
       "color": "#43B7B8",
       "content": {
         "heroEmoji": "🧗‍♀️",
-        "summary": "听说你想学攀岩很久了？今天就带你去！",
+        "summary": "我们一起学攀岩吧",
         "details": [
-          { "label": "场地", "value": "已预约室内攀岩馆", "emoji": "📍" },
-          { "label": "教练", "value": "专业教练一对一指导", "emoji": "👨‍🏫" },
+          { "label": "场地", "value": "Goat 2.0", "emoji": "📍" },
+          { "label": "教练", "value": "专业教练一对二指导", "emoji": "👨‍🏫" },
           { "label": "难度", "value": "新手友好路线", "emoji": "⭐" },
-          { "label": "装备", "value": "全部已备好，人来就行", "emoji": "🎒" }
+          { "label": "装备", "value": "全部已备好，人来就行。记得穿一些适合运动的衣服", "emoji": "🎒" },
+          { "label": "飞猪建议", "value": "可以提前了解一些攀岩知识", "emoji": "💡" }
         ],
-        "closingLine": "征服一面墙，解锁一个新自己！💪"
+        "closingLine": "给这一天留下更有意义的回忆"
       }
     },
     {
