@@ -822,8 +822,10 @@ let newlyUnlockedIds = new Set();
 
   const emojis = ['💕', '✨', '🌸', '💖', '🩷', '🎀', '💝', '🌟'];
 
+  // 普通粒子
   for (let i = 0; i < PARTICLES_COUNT; i++) {
     particles.push({
+      type: 'particle',
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       size: 12 + Math.random() * 14,
@@ -836,9 +838,64 @@ let newlyUnlockedIds = new Set();
     });
   }
 
+  // 飞猪 —— 特殊的飞行粒子
+  let flyingPig = {
+    type: 'pig',
+    x: canvas.width * 0.3,
+    y: canvas.height * 0.5,
+    size: 36,
+    speedX: 0.6,
+    speedY: 0.35,
+    phase: 0,
+    trail: [] // 尾迹
+  };
+
   function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 更新飞猪位置 —— 正弦波飞行路径
+    flyingPig.phase += 0.02;
+    flyingPig.x += flyingPig.speedX;
+    flyingPig.y += Math.sin(flyingPig.phase) * 1.2 + flyingPig.speedY * 0.3;
+
+    // 边界反弹
+    if (flyingPig.x > canvas.width + 40) { flyingPig.x = -40; flyingPig.y = Math.random() * canvas.height * 0.7 + canvas.height * 0.1; }
+    if (flyingPig.x < -40) { flyingPig.x = canvas.width + 40; }
+    if (flyingPig.y > canvas.height * 0.85) { flyingPig.speedY = -Math.abs(flyingPig.speedY); }
+    if (flyingPig.y < canvas.height * 0.1) { flyingPig.speedY = Math.abs(flyingPig.speedY); }
+
+    // 尾迹
+    flyingPig.trail.push({ x: flyingPig.x, y: flyingPig.y, life: 1 });
+    if (flyingPig.trail.length > 12) flyingPig.trail.shift();
+    flyingPig.trail.forEach(t => t.life -= 0.08);
+
+    // 画尾迹
+    flyingPig.trail.forEach(t => {
+      if (t.life > 0) {
+        ctx.globalAlpha = t.life * 0.25;
+        ctx.font = '14px serif';
+        ctx.fillText('💨', t.x - 20, t.y + 2);
+      }
+    });
+
+    // 画飞猪
+    ctx.globalAlpha = 0.7;
+    ctx.font = `${flyingPig.size}px serif`;
+    // 根据飞行方向翻转
+    ctx.save();
+    ctx.translate(flyingPig.x, flyingPig.y);
+    ctx.scale(flyingPig.speedX > 0 ? 1 : -1, 1);
+    ctx.fillText('🐷', -flyingPig.size/2, flyingPig.size/2);
+    ctx.restore();
+
+    // 画小翅膀/闪光
+    ctx.globalAlpha = 0.5;
+    ctx.font = '16px serif';
+    ctx.fillText('✨', flyingPig.x - 24, flyingPig.y - 18);
+
+    // 画普通粒子
     particles.forEach(p => {
+      if (p.type !== 'particle') return;
       p.y -= p.speedY;
       p.x += Math.sin(p.wobble) * p.speedX;
       p.wobble += p.wobbleSpeed;
