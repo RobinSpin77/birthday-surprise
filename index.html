@@ -926,6 +926,9 @@ function getDefaultConfig() {
 // ==================== 渲染 ====================
 function renderAll() {
   // Hero
+  if (config.heroTitle) {
+    document.querySelector('.hero-title').textContent = config.heroTitle;
+  }
   if (config.heroMessage) {
     document.querySelector('.hero-subtitle').textContent = config.heroMessage;
   }
