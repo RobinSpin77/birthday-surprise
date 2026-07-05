@@ -1,9 +1,9 @@
 # 🎂 生日惊喜页面 — 项目文档
 
-> **🔗 分享链接**：https://birthday-77.netlify.app （推荐，不暴露 GitHub）
+> **🔗 分享链接**：https://birthday-77.netlify.app （主部署，国内可访问）
 > **备用直连**：https://robinspin77.github.io/birthday-surprise/
 > **GitHub 仓库**：https://github.com/RobinSpin77/birthday-surprise
-> **部署**：GitHub Pages（主页面） + Netlify（跳转壳）
+> **部署**：Netlify（主） + GitHub Pages（备）
 
 ---
 
@@ -11,9 +11,10 @@
 
 一个 H5 生日惊喜页面，女朋友点开链接后能看到：
 
-- 🕯️ **生日倒计时**（天/时/分/秒，每秒跳动，到点变生日祝福）
+- 🕯️ **生日倒计时**（天/时/分/秒，每秒跳动，到 7/9 0 点变生日祝福）
 - 📊 **解锁进度条**（已完成 x/5）
-- 5 个按顺序排列的活动卡片：
+- 🐖🐕 **飞猪 + 飞狗**（Canvas 粒子动画，侧面站立 + 🪽 双翼，靠近触发爱心彩蛋）
+- 5 个活动卡片：
   1. 🛒 购物车心愿单
   2. 🧗 人生新技能解锁（攀岩）
   3. 🍰 甜品上海大作战
@@ -21,32 +22,35 @@
   5. 🎵 解锁音乐会体验
 
 **核心机制**：
-- 🔒 **锁定状态**：图标模糊+灰度、标题模糊、显示倒计时、内容不可见
+- 🔒 **锁定状态**：图标+标题+副标题全部模糊，倒计时显示，内容不可见
 - 🎁 **新解锁**：卡片变礼物盒，轻点「拆开」才看到内容（开盲盒体验）
 - ✨ **已拆开**：展示完整信息（购物清单、甜品地图、菜单等）
 - ⏰ **自动解锁**：到达预设时间自动变礼物盒
-- 🔧 **手动解锁**：通过管理面板（连点 8 次 🔑）或修改配置提前解锁
+- 🔧 **手动解锁**：长按蛋糕 🎂 3 秒 或 URL 加 `?admin` 打开管理面板
 
 **安全设计**：
-- 锁定卡片图标 + 标题 + 副标题全部模糊，无法辨认
-- 管理面板需快速连点 8 次 🔑 才能打开，防止误触
-- 分享链接用 Netlify 域名包装，不暴露 GitHub 仓库
+- 锁定卡片图标+标题+副标题全部模糊，无法辨认
+- 管理面板无可见入口（长按蛋糕 3 秒 / `?admin` 参数），她不可能发现
+- 分享链接用 Netlify 域名，不暴露 GitHub 仓库
+- 活动倒计时 >1 天显示 `dd-hh-mm` 格式
 
 ---
 
 ## 二、文件结构
 
 ```
-birthday-surprise/          ← 主项目（GitHub Pages）
+birthday-surprise/          ← 主项目（Git 仓库）
 ├── index.html              ← 完整页面（零依赖单文件）
 ├── config.json             ← 配置文件（你只需改这个）
 └── README.md               ← 本文件
 
-birthday-redirect/          ← 跳转壳（Netlify）
-└── index.html              ← iframe 内嵌主页面，隐藏 GitHub 域名
+birthday-redirect/          ← Netlify 部署目录
+├── index.html              ← 主页面副本
+├── config.json             ← 配置文件副本
+└── netlify.toml            ← Netlify 构建配置（跳过 hugo）
 ```
 
-**设计原则**：零依赖。不引用任何外部 CSS/JS/字体库。
+**设计原则**：零外部依赖，单 HTML 文件包含全部 CSS/JS/Canvas。
 
 ---
 
@@ -57,119 +61,98 @@ birthday-redirect/          ← 跳转壳（Netlify）
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `birthdayStar` | string | 女主角昵称 |
-| `birthdayDate` | string | 生日日期，用于倒计时计算。如 `"2026-07-09"` |
-| `heroTitle` | string | 页面顶部大字标题。如 `"生日快乐，我的小狗！"` |
+| `birthdayDate` | string | 生日日期，用于倒计时。如 `"2026-07-09"` |
+| `heroTitle` | string | 页面顶部大字标题 |
 | `heroMessage` | string | 标题下方副文案，`\n` 换行 |
-| `finalMessage` | string | 全部活动拆完后显示的结尾文案 |
+| `finalMessage` | string | 全部拆完后显示的结尾文案 |
 | `activities` | array | 活动卡片列表，顺序即展示顺序 |
 
 ### 3.2 每个 activity 的字段
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `id` | string | 唯一标识，如 `"shopping-spree"` |
+| `id` | string | 唯一标识 |
 | `icon` | string | 卡片图标 emoji |
 | `title` | string | 活动名称 |
-| `subtitle` | string | 副标题（一行） |
-| `unlockTime` | string | ISO 时间格式，到点自动解锁。如 `"2026-07-07T08:00:00"` |
-| `forceUnlocked` | boolean | `true` = 无论到不到时间都解锁（手动覆盖） |
-| `color` | string | 卡片图标背景色（HEX） |
+| `subtitle` | string | 副标题 |
+| `unlockTime` | string | ISO 时间，到点自动解锁。如 `"2026-07-07T08:00:00"` |
+| `forceUnlocked` | boolean | `true` = 无视时间立即解锁 |
+| `color` | string | 图标背景色 (HEX) |
 | `content` | object | 解锁后展示的内容，见下方 |
 
-### 3.3 content 内容类型
-
-根据活动类型不同，`content` 有四种写法：
+### 3.3 content 四种类型
 
 **A. 购物清单型**（购物车心愿单）
 ```json
 "content": {
-  "heroEmoji": "🛍️",
-  "summary": "一句话总结",
-  "items": [
-    { "name": "商品名", "emoji": "👗", "note": "备注" }
-  ],
-  "closingLine": "结尾文案"
+  "heroEmoji": "🛍️", "summary": "一句话",
+  "items": [{ "name": "商品", "emoji": "👗", "note": "备注" }],
+  "closingLine": "结尾"
 }
 ```
 
-**B. 地图打卡型**（甜品上海大作战）
+**B. 打卡地图型**（甜品上海大作战）
 ```json
 "content": {
-  "heroEmoji": "🗺️",
-  "summary": "一句话总结",
-  "stops": [
-    { "name": "店名", "area": "区域", "mustTry": "必点", "emoji": "🍮" }
-  ],
-  "mapNote": "地图说明文字",
-  "closingLine": "结尾文案"
+  "heroEmoji": "🗺️", "summary": "一句话",
+  "stops": [{ "name": "店名", "area": "区域", "mustTry": "必点", "emoji": "🍮" }],
+  "mapNote": "地图说明", "closingLine": "结尾"
 }
 ```
 
 **C. 详情卡片型**（攀岩 / 音乐会）
 ```json
 "content": {
-  "heroEmoji": "🧗‍♀️",
-  "summary": "一句话总结",
-  "details": [
-    { "label": "标签", "value": "内容", "emoji": "📍" }
-  ],
-  "closingLine": "结尾文案"
+  "heroEmoji": "🧗‍♀️", "summary": "一句话",
+  "details": [{ "label": "标签", "value": "内容", "emoji": "📍" }],
+  "closingLine": "结尾"
 }
 ```
 
 **D. 菜单型**（西班牙晚餐）
 ```json
 "content": {
-  "heroEmoji": "🕯️",
-  "summary": "一句话总结",
-  "menu": [
-    { "course": "前菜", "dishes": "菜名", "emoji": "🍖" }
-  ],
-  "wineNote": "酒水备注",
-  "closingLine": "结尾文案"
+  "heroEmoji": "🕯️", "summary": "一句话",
+  "menu": [{ "course": "前菜", "dishes": "菜名", "emoji": "🍖" }],
+  "wineNote": "酒水备注", "closingLine": "结尾"
 }
 ```
 
 ---
 
-## 四、日常操作指南
+## 四、日常操作
 
-### 4.1 更新内容并上线
-
-**方法一：直接在 GitHub 网页改（最简单）**
-1. 打开 https://github.com/RobinSpin77/birthday-surprise/blob/main/config.json
-2. 点右上角 ✏️ 编辑
-3. 修改内容 → 点绿色「Commit changes」按钮
-4. 等 30~60 秒，刷新页面链接即可看到更新
-
-**方法二：本地改完用命令行推送**
-```bash
-cd "E:/document/Core Document/微信公众号运营/try/birthday-surprise"
-# 修改 config.json 后...
-git add config.json
-git commit -m "更新活动内容"
-git push
-```
-> ⚠️ 只需推 GitHub Pages，Netlify 是 iframe 包着它，自动跟随更新。
-
-### 4.2 分享链接说明
+### 4.1 分享链接
 
 | 链接 | 用途 | 暴露 GitHub？ |
 |------|------|:--:|
-| `https://birthday-77.netlify.app` | **发给她** | ❌ 不暴露 |
-| `https://robinspin77.github.io/birthday-surprise/` | 你自己测试 | ✅ 暴露 |
+| `https://birthday-77.netlify.app` | **发给她** | ❌ |
+| `https://robinspin77.github.io/birthday-surprise/` | 自测 | ✅ |
 
-### 4.3 手动提前解锁某个活动
+### 4.2 更新内容上线
 
-**方法一（远程生效，推荐）**：在 config.json 中把对应活动的 `forceUnlocked` 改为 `true`，commit 推送。她刷新页面就能看到新礼物盒。
+**方法一：GitHub 网页改**
+1. 打开 https://github.com/RobinSpin77/birthday-surprise/blob/main/config.json
+2. 点 ✏️ 编辑 → 修改 → Commit changes
+3. 告诉 Claude「帮我把更新同步到 Netlify」
 
-**方法二（本机测试）**：打开页面 → 3 秒内快速连点右下角 🔑 **八次** → 弹出管理面板 → 点「锁定中」切换。
+**方法二：告诉 Claude**
+> 「帮我更新 config.json 并部署到 Netlify」
 
-> ⚠️ 管理面板的解锁**仅在你当前设备生效**（存 localStorage）。要让你女朋友也看到，必须用方法一改 config.json。
+Claude 会：改 config.json → git push → cp 到 redirect → `netlify deploy --prod`
 
-### 4.4 全部重置（测试用）
+### 4.3 打开管理面板
 
-在浏览器控制台执行：
+| 方式 | 操作 |
+|------|------|
+| 手机 | 长按蛋糕 🎂 **3 秒**不松 |
+| 电脑 | 鼠标按住蛋糕 🎂 3 秒 |
+| 万能 | URL 后加 `?admin`，如 `birthday-77.netlify.app?admin` |
+
+> ⚠️ 面板解锁仅本设备生效（localStorage）。要让她也看到，必须改 `forceUnlocked: true` 并部署。
+
+### 4.4 重置测试
+
 ```js
 localStorage.clear(); sessionStorage.clear(); location.reload();
 ```
@@ -178,37 +161,31 @@ localStorage.clear(); sessionStorage.clear(); location.reload();
 
 ## 五、技术架构
 
-### 5.1 解锁逻辑（三重判断，任一满足即解锁）
+### 5.1 解锁逻辑
 
 ```
-isUnlocked = hash覆盖 OR forceUnlocked OR 当前时间 >= unlockTime
+isUnlocked = forceUnlocked OR 当前时间 >= unlockTime
 ```
 
-优先级：管理面板手动 > 配置文件 forceUnlocked > 预设时间
-
-### 5.2 状态流转
+### 5.2 卡片状态流转
 
 ```
-locked ──(解锁条件满足)──→ unlocked-unopened ──(点击拆开)──→ unlocked-opened
-  🔒                           🎁                              ✨
-  标题模糊                     礼物盒遮罩                       完整内容展开
-  倒计时显示                   轻点可拆                         进度条+1
+locked ──(解锁)──→ unlocked-unopened ──(点击拆开)──→ unlocked-opened
+  🔒                   🎁                              ✨
 ```
 
-### 5.3 数据存储
+### 5.3 动画系统
 
-| 存储 | 内容 | 用途 |
+| 层 | 技术 | 内容 |
 |------|------|------|
-| `config.json` | 活动配置、解锁时间 | 远程部署，所有设备一致 |
-| `localStorage` | `birthday-opened`（已拆列表）、`birthday-manual-overrides`（手动覆盖） | 设备本地状态 |
-| `sessionStorage` | `birthday-known-unlocked` | 追踪新解锁的卡片（用于动画） |
+| 粒子背景 | Canvas 2D | 25 颗漂浮爱心/花瓣 (💕✨🌸💖) |
+| 飞猪飞狗 | Canvas 2D | 🐖🐕 + 🪽 双翼扑动 + 💨 尾迹 + 靠近爱心爆发 |
+| 彩纸 | Canvas 2D | 拆礼物时触发，80 片彩纸飘落 |
+| 卡片动画 | CSS keyframes | 浮动、脉冲、弹入、礼物摇动 |
 
 ### 5.4 浏览器兼容
 
-- ✅ iOS Safari
-- ✅ 微信内置浏览器
-- ✅ Android Chrome
-- ✅ 桌面端 Chrome / Edge / Safari
+- ✅ iOS Safari / 微信内置浏览器 / Android Chrome / 桌面 Chrome/Edge/Safari
 
 ---
 
@@ -217,58 +194,46 @@ locked ──(解锁条件满足)──→ unlocked-unopened ──(点击拆开
 | 属性 | 值 |
 |------|-----|
 | 主色调 | `#FF7EB3` 暖粉 |
-| 辅助色 | `#FFB347` 暖金、`#FFD4E0` 浅粉 |
-| 背景 | 渐变 `#FFF0F3 → #FFF5F7` |
+| 辅助色 | `#FFB347` 暖金 |
 | 卡片圆角 | 20px |
-| 特效 | Canvas 粒子（漂浮爱心/花瓣）、Canvas 彩纸（拆礼物时） |
-| 动画 | CSS keyframes（浮动、脉冲、弹入、礼物摇动） |
+| 锁定模糊 | 图标 blur(5px)、标题 blur(6px)、副标题 blur(5px) |
+| 倒计时格式 | ≥1天: `X天X时X分`，<1天: `X时X分`，<1时: `X分X秒` |
 
 ---
 
 ## 七、常见问题
 
-### Q: 她打开页面什么都没解锁？
-A: 检查 `unlockTime` 是否已过当前时间。时区按浏览器本地时间计算。
-
-### Q: 想增加/减少活动？
-A: 在 `config.json` 的 `activities` 数组中增删条目，页面自动适配。支持 1~N 个。
-
-### Q: 想换图标/颜色？
-A: 改 `icon`（emoji）和 `color`（HEX 色值）。每个活动可独立配色。
-
-### Q: 管理面板打不开？
-A: 在 3 秒内快速点击右下角 🔑 **八次**。
-
-### Q: 部署后页面白屏？
-A: 检查浏览器控制台（F12）看 `config.json` 是否 404。确保两个文件都在仓库根目录。
+| Q | A |
+|----|----|
+| 她打开什么都没解锁？ | 检查 `unlockTime` 是否已过，时区按浏览器本地时间 |
+| 想增减活动？ | 改 `activities` 数组，页面自动适配 |
+| 管理面板打不开？ | 长按蛋糕 3 秒，或加 `?admin` |
+| Netlify 部署失败？ | 检查 `netlify.toml` 是否在目录中 |
 
 ---
 
-## 八、继续请 Claude 帮忙
+## 八、请 Claude 帮忙
 
-把这个项目发给 Claude 时，附上这段话可以让 Claude 快速理解：
+> 这是一个生日惊喜 H5 项目，文档见 README.md。帮我……
 
-> 这是一个生日惊喜 H5 页面项目，文档见 README.md。请先阅读 README 和 config.json，然后帮我……
-
-常用指令示例：
+常用指令：
 - 「帮我把甜品店信息改成真实的」
-- 「再加一个活动——温泉 Spa」
-- 「把所有解锁时间改成 7/7」
-- 「帮我重新部署到线上」
+- 「再加一个活动」
+- 「解锁攀岩活动」
+- 「更新部署到 Netlify」
 
 ---
 
 *最后更新：2026-07-05*
 
----
-
 ## 九、更新日志
 
 | 日期 | 内容 |
 |------|------|
-| 7/5 | 初始版本，5 个活动卡片，GitHub Pages 部署 |
-| 7/5 | 新增生日实时倒计时（距 7/9 0 点） |
-| 7/5 | `heroTitle` 配置化，支持通过 config.json 修改顶部大字 |
-| 7/5 | 安全加固：管理面板 3 次→**8 次**点击、锁定图标加**模糊** |
-| 7/5 | 新增 **Netlify 跳转壳** (`birthday-77.netlify.app`)，隐藏 GitHub 域名 |
-| 7/5 | 调整活动顺序：攀岩→甜品→晚餐→音乐会，解锁时间更新 |
+| 7/5 | 初始版本，5 卡片，GitHub Pages |
+| 7/5 | 生日倒计时 |
+| 7/5 | `heroTitle` 配置化 |
+| 7/5 | 锁定图标模糊 + 管理面板长按蛋糕 |
+| 7/5 | Netlify 直接托管（非 iframe） |
+| 7/5 | 活动倒计时 dd-hh-mm 格式 |
+| 7/5 | 🐖🐕 飞猪飞狗双翼飞行 + 靠近彩蛋 |
