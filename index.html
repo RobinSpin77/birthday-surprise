@@ -242,7 +242,7 @@ body {
 
 .locked .card-icon-wrap {
   background: #F0E4EA !important;
-  filter: grayscale(0.5);
+  filter: grayscale(0.6) blur(5px);
 }
 
 .card-info {
@@ -1415,7 +1415,7 @@ let adminTapTimer = null;
 
 document.getElementById('admin-trigger').addEventListener('click', () => {
   adminTapCount++;
-  if (adminTapCount >= 3) {
+  if (adminTapCount >= 8) {
     const panel = document.getElementById('admin-panel');
     panel.classList.toggle('visible');
     if (panel.classList.contains('visible')) {
@@ -1424,7 +1424,7 @@ document.getElementById('admin-trigger').addEventListener('click', () => {
     adminTapCount = 0;
   }
   clearTimeout(adminTapTimer);
-  adminTapTimer = setTimeout(() => { adminTapCount = 0; }, 1000);
+  adminTapTimer = setTimeout(() => { adminTapCount = 0; }, 3000);
 });
 
 document.getElementById('admin-close').addEventListener('click', () => {
