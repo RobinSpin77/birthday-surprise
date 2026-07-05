@@ -9,7 +9,7 @@
   "birthdayStar": "勇敢机智的77小狗",
   "birthdayDate": "2026-07-09",
   "heroTitle": "生日快乐，我的小狗！",
-  "heroMessage": "\n飞猪捡到一份只有你可以打开的冒险指引，但是被抓住了，\n每解锁一项，飞猪就越早获得自由 💕",
+  "heroMessage": "\n飞猪捡到一份只有你可以打开的冒险指引，但是被抓住了 \n每解锁一项，飞猪就越早获得自由 💕",
 
   "activities": [
     {
@@ -17,7 +17,7 @@
       "icon": "🛒",
       "title": "购物车心愿单",
       "subtitle": "清空你的心愿清单",
-      "unlockTime": "2026-07-06T08:00:00",
+      "unlockTime": "2026-07-06T20:00:00",
       "forceUnlocked": false,
       "color": "#FF7EB3",
       "content": {
@@ -32,32 +32,11 @@
       }
     },
     {
-      "id": "dessert-tour",
-      "icon": "🍰",
-      "title": "甜品上海大作战",
-      "subtitle": "用舌尖丈量上海的甜度",
-      "unlockTime": "2026-07-06T11:00:00",
-      "forceUnlocked": false,
-      "color": "#FF9A56",
-      "content": {
-        "heroEmoji": "🗺️",
-        "summary": "带你横扫上海最值得吃的甜品店，一家一家打卡！",
-        "stops": [
-          { "name": "甜品店 #1", "area": "法租界", "mustTry": "招牌提拉米苏", "emoji": "🍮" },
-          { "name": "甜品店 #2", "area": "静安寺", "mustTry": "杨枝甘露", "emoji": "🥭" },
-          { "name": "甜品店 #3", "area": "永康路", "mustTry": "手冲+巴斯克", "emoji": "☕" },
-          { "name": "甜品店 #4", "area": "愚园路", "mustTry": "季节限定刨冰", "emoji": "🍧" }
-        ],
-        "mapNote": "（完整逛吃地图 + 路线攻略已就绪）",
-        "closingLine": "甜食自由的一天，准备好了吗？🍬"
-      }
-    },
-    {
       "id": "rock-climbing",
       "icon": "🧗",
       "title": "人生新技能解锁",
       "subtitle": "一起点亮攀岩成就",
-      "unlockTime": "2026-07-06T14:00:00",
+      "unlockTime": "2026-07-08T12:00:00",
       "forceUnlocked": false,
       "color": "#43B7B8",
       "content": {
@@ -73,11 +52,33 @@
       }
     },
     {
+      "id": "dessert-tour",
+      "icon": "🍰",
+      "title": "甜品上海大作战",
+      "subtitle": "用舌尖丈量上海的甜度",
+      "unlockTime": "2026-07-09T12:00:00",
+      "forceUnlocked": false,
+      "color": "#FF9A56",
+      "content": {
+        "heroEmoji": "🗺️",
+        "summary": "带你横扫上海最值得吃的甜品店，一家一家打卡！",
+        "stops": [
+          { "name": "甜品店 #1", "area": "法租界", "mustTry": "招牌提拉米苏", "emoji": "🍮" },
+          { "name": "甜品店 #2", "area": "静安寺", "mustTry": "杨枝甘露", "emoji": "🥭" },
+          { "name": "甜品店 #3", "area": "永康路", "mustTry": "手冲+巴斯克", "emoji": "☕" },
+          { "name": "甜品店 #4", "area": "愚园路", "mustTry": "季节限定刨冰", "emoji": "🍧" }
+        ],
+        "mapNote": "（完整逛吃地图 + 路线攻略已就绪）",
+        "closingLine": "甜食自由的一天，准备好了吗？🍬"
+      }
+    },
+
+    {
       "id": "spanish-dinner",
       "icon": "🥘",
       "title": "共进西班牙晚餐",
       "subtitle": "海鲜饭、Tapas 和你的笑容",
-      "unlockTime": "2026-07-06T18:00:00",
+      "unlockTime": "2026-07-09T16:30:00",
       "forceUnlocked": false,
       "color": "#D4494B",
       "content": {
@@ -98,7 +99,7 @@
       "icon": "🎵",
       "title": "解锁音乐会体验",
       "subtitle": "让旋律为这一天收尾",
-      "unlockTime": "2026-07-06T20:00:00",
+      "unlockTime": "2026-07-09T19:00:00",
       "forceUnlocked": false,
       "color": "#7B4FBF",
       "content": {
