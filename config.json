@@ -9,7 +9,7 @@
   "birthdayStar": "勇敢机智的77小狗",
   "birthdayDate": "2026-07-09",
   "heroTitle": "生日快乐，我的小狗！",
-  "heroMessage": "\n飞猪捡到一份只有你可以打开的冒险指引，但是被抓住了 \n每解锁一项，飞猪就越早获得自由 💕",
+  "heroMessage": "\n飞猪捡到一份只有你可以打开的冒险指引 \n但是被抓住了 \n快快解锁，营救飞猪 💕",
 
   "activities": [
     {
@@ -17,7 +17,7 @@
       "icon": "🛒",
       "title": "购物车心愿单",
       "subtitle": "清空你的心愿清单",
-      "unlockTime": "2026-07-06T20:00:00",
+      "unlockTime": "2026-07-06T12:00:00",
       "forceUnlocked": false,
       "color": "#FF7EB3",
       "content": {
