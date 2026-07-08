@@ -78,43 +78,33 @@
     },
 
     {
-      "id": "spanish-dinner",
-      "icon": "🥘",
-      "title": "共进西班牙晚餐",
-      "subtitle": "海鲜饭、Tapas 和你的笑容",
-      "unlockTime": "2026-07-09T16:30:00",
-      "forceUnlocked": false,
-      "color": "#D4494B",
-      "content": {
-        "heroEmoji": "🕯️",
-        "summary": "灯光调暗，蜡烛点亮，今晚只有美食和我们。",
-        "menu": [
-          { "course": "前菜", "dishes": "西班牙火腿 + 番茄面包 + 橄榄", "emoji": "🍖" },
-          { "course": "主菜", "dishes": "招牌海鲜饭 Paella", "emoji": "🥘" },
-          { "course": "小食", "dishes": "各式 Tapas 拼盘", "emoji": "🍤" },
-          { "course": "甜品", "dishes": "加泰罗尼亚焦糖布丁", "emoji": "🍮" }
-        ],
-        "wineNote": "配一瓶你喜欢的 Sangria 🍷",
-        "closingLine": "最好的晚餐，是和对的人一起吃 💕"
-      }
-    },
-    {
       "id": "concert",
       "icon": "🎵",
       "title": "解锁音乐会体验",
-      "subtitle": "让旋律为这一天收尾",
-      "unlockTime": "2026-07-09T19:00:00",
+      "subtitle": "极光管弦乐团演绎门德尔松",
+      "unlockTime": "2026-07-09T16:30:00",
       "forceUnlocked": false,
       "color": "#7B4FBF",
       "content": {
         "heroEmoji": "🎻",
-        "summary": "最后一份惊喜——两张音乐会门票，最好的座位。",
+        "summary": "很久以前和宝宝说，想带宝宝来正式的音乐会",
         "details": [
-          { "label": "演出", "value": "（预留，等你来填）", "emoji": "🎼" },
-          { "label": "座位", "value": "最佳观赏位", "emoji": "💺" },
-          { "label": "时长", "value": "约 90 分钟", "emoji": "⏱️" }
+          { "label": "演出", "value": "极光管弦乐团演绎门德尔松", "emoji": "🎼" }
         ],
-        "closingLine": "音符落下，但这一天会一直在心里回响 🎶"
+        "closingLine": "让旋律为这一天收尾 🎶"
+      }
+    },
+    {
+      "id": "spanish-dinner",
+      "icon": "🥘",
+      "title": "布朗石西班牙餐厅晚餐",
+      "subtitle": "最好的晚餐，是和对的人一起吃",
+      "unlockTime": "2026-07-09T19:00:00",
+      "forceUnlocked": false,
+      "color": "#D4494B",
+      "content": {
+        "heroEmoji": "🕯️",
+        "summary": "灯光调暗，蜡烛点亮，今晚只有美食和我们 💕"
       }
     }
   ],
