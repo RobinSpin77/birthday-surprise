@@ -426,6 +426,79 @@ body {
   filter: blur(8px) grayscale(0.5);
 }
 
+/* Content: Editable Table */
+.content-table-wrap {
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+.content-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.content-table th {
+  background: var(--pink-light);
+  color: var(--text);
+  padding: 8px 10px;
+  font-weight: 600;
+  font-size: 12px;
+  text-align: left;
+  border-radius: 4px 4px 0 0;
+}
+.content-table td {
+  padding: 6px 4px;
+  border-bottom: 1px solid #FEE4EC;
+}
+.content-table input {
+  width: 100%;
+  border: 1px solid #F0E4EA;
+  border-radius: 6px;
+  padding: 7px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  background: #FFFBFD;
+  color: var(--text);
+  outline: none;
+  transition: border 0.2s;
+  box-sizing: border-box;
+}
+.content-table input:focus {
+  border-color: var(--pink);
+  background: white;
+}
+.content-table input::placeholder {
+  color: #D4BCC8;
+  font-size: 12px;
+}
+.table-add-btn {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: 2px dashed var(--pink-light);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--pink);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.table-add-btn:hover {
+  background: var(--pink-bg);
+  border-color: var(--pink);
+}
+.table-delete-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+.table-delete-btn:hover { opacity: 1; }
+
 /* Content: Dessert Tour */
 .content-stops {
   display: flex;
@@ -1231,6 +1304,9 @@ function renderAll() {
 
   // 更新管理面板
   renderAdminPanel();
+
+  // 绑定可编辑表格事件
+  bindTableEvents();
 }
 
 function renderContent(act) {
@@ -1276,7 +1352,12 @@ function renderContent(act) {
     html += '</div>';
   }
 
-  // 甜品站
+  // 可编辑表格（甜品逛吃）
+  if (c.table) {
+    html += renderEditableTable(c.table);
+  }
+
+  // 甜品站 (legacy)
   if (c.stops && c.stops.length > 0) {
     html += '<div class="content-stops">';
     c.stops.forEach((stop, i) => {
@@ -1336,6 +1417,115 @@ function renderContent(act) {
   }
 
   return html;
+}
+
+// ==================== 可编辑表格 ====================
+function getTableData(tableId) {
+  try {
+    return JSON.parse(localStorage.getItem(`table-${tableId}`)) || [];
+  } catch(e) { return []; }
+}
+
+function saveTableData(tableId, rows) {
+  localStorage.setItem(`table-${tableId}`, JSON.stringify(rows));
+}
+
+function renderEditableTable(tableCfg) {
+  const tableId = tableCfg.placeholder || 'table';
+  const rows = getTableData(tableId);
+  const cols = tableCfg.columns || ['店名', '品类', '评价'];
+
+  // 确保至少有一行空行
+  if (rows.length === 0) {
+    rows.push(cols.map(() => ''));
+  }
+
+  let html = '<div class="content-table-wrap"><table class="content-table"><thead><tr>';
+  cols.forEach(col => { html += `<th>${col}</th>`; });
+  html += '<th style="width:30px;"></th></tr></thead><tbody>';
+
+  rows.forEach((row, ri) => {
+    html += '<tr>';
+    cols.forEach((col, ci) => {
+      html += `<td><input type="text" placeholder="${col}" value="${escapeHtml(row[ci] || '')}" data-table="${escapeHtml(tableId)}" data-row="${ri}" data-col="${ci}"></td>`;
+    });
+    html += `<td><button class="table-delete-btn" data-table="${escapeHtml(tableId)}" data-row="${ri}" title="删除">✕</button></td>`;
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  html += `<button class="table-add-btn" data-table="${escapeHtml(tableId)}">${tableCfg.addLabel || '➕ 添加一行'}</button>`;
+  html += '</div>';
+  return html;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// 绑定表格事件（在 renderAll 后调用）
+function bindTableEvents() {
+  // 输入变化
+  document.querySelectorAll('.content-table input').forEach(input => {
+    input.addEventListener('change', () => {
+      const tableId = input.dataset.table;
+      const ri = parseInt(input.dataset.row);
+      const ci = parseInt(input.dataset.col);
+      const rows = getTableData(tableId);
+      if (!rows[ri]) rows[ri] = [];
+      rows[ri][ci] = input.value;
+      // 清理空尾行
+      while (rows.length > 1 && rows[rows.length-1].every(c => !c)) rows.pop();
+      saveTableData(tableId, rows);
+    });
+  });
+
+  // 删除行
+  document.querySelectorAll('.table-delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tableId = btn.dataset.table;
+      const ri = parseInt(btn.dataset.row);
+      const rows = getTableData(tableId);
+      if (rows.length <= 1) return; // 保留至少一行
+      rows.splice(ri, 1);
+      saveTableData(tableId, rows);
+      // 局部刷新表格
+      const card = btn.closest('.card');
+      const actId = card ? card.id.replace('card-', '') : null;
+      if (actId) {
+        const act = activities.find(a => a.id === actId);
+        if (act) {
+          const tableWrap = card.querySelector('.content-table-wrap');
+          if (tableWrap) {
+            tableWrap.outerHTML = renderEditableTable(act.content.table);
+            bindTableEvents();
+          }
+        }
+      }
+    });
+  });
+
+  // 添加行
+  document.querySelectorAll('.table-add-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tableId = btn.dataset.table;
+      const rows = getTableData(tableId);
+      rows.push([]);
+      saveTableData(tableId, rows);
+      const card = btn.closest('.card');
+      const actId = card ? card.id.replace('card-', '') : null;
+      if (actId) {
+        const act = activities.find(a => a.id === actId);
+        if (act) {
+          const tableWrap = card.querySelector('.content-table-wrap');
+          if (tableWrap) {
+            tableWrap.outerHTML = renderEditableTable(act.content.table);
+            bindTableEvents();
+          }
+        }
+      }
+    });
+  });
 }
 
 // ==================== 拆礼物交互 ====================

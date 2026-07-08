@@ -68,13 +68,11 @@
       "content": {
         "heroEmoji": "🗺️",
         "summary": "带你横扫上海最值得吃的甜品店，一家一家打卡！",
-        "stops": [
-          { "name": "甜品店 #1", "area": "法租界", "mustTry": "招牌提拉米苏", "emoji": "🍮" },
-          { "name": "甜品店 #2", "area": "静安寺", "mustTry": "杨枝甘露", "emoji": "🥭" },
-          { "name": "甜品店 #3", "area": "永康路", "mustTry": "手冲+巴斯克", "emoji": "☕" },
-          { "name": "甜品店 #4", "area": "愚园路", "mustTry": "季节限定刨冰", "emoji": "🍧" }
-        ],
-        "mapNote": "（完整逛吃地图 + 路线攻略已就绪）",
+        "table": {
+          "columns": ["店名", "品类", "评价"],
+          "placeholder": "甜品逛吃记录",
+          "addLabel": "➕ 记录一家店"
+        },
         "closingLine": "甜食自由的一天，准备好了吗？🍬"
       }
     },
