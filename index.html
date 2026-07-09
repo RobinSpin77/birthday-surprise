@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- WeChat 分享优化 -->
@@ -500,12 +502,20 @@ body {
 .table-delete-btn:hover { opacity: 1; }
 
 .dessert-map-canvas {
+  display: none;
+}
+.dessert-map-wrap {
   width: 100%;
   max-width: 360px;
-  display: block;
   margin: 12px auto 0;
   border-radius: 14px;
-  background: #FFFBFD;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(255,126,179,0.1);
+}
+.dessert-map {
+  width: 100%;
+  height: 260px;
+  background: #f5f0eb;
 }
 
 /* Content: Dessert Tour */
@@ -1466,11 +1476,11 @@ function renderEditableTable(tableCfg) {
   html += `<button class="table-add-btn" data-table="${escapeHtml(tableId)}">${tableCfg.addLabel || '➕ 添加一行'}</button>`;
   html += '</div>';
 
-  // 卡通路线图
-  html += `<canvas class="dessert-map-canvas" id="map-${escapeHtml(tableId)}" width="360" height="200"></canvas>`;
+  // 真实地图
+  html += `<div class="dessert-map-wrap"><div class="dessert-map" id="map-${escapeHtml(tableId)}"></div></div>`;
 
-  // 初始化画路线
-  setTimeout(() => drawDessertRoute(tableId), 100);
+  // 初始化地图
+  setTimeout(() => initDessertMap(tableId), 300);
 
   return html;
 }
@@ -1493,7 +1503,7 @@ function bindTableEvents() {
       // 清理空尾行
       while (rows.length > 1 && rows[rows.length-1].every(c => !c)) rows.pop();
       saveTableData(tableId, rows);
-      drawDessertRoute(tableId);
+      initDessertMap(tableId);
     });
   });
 
@@ -1506,7 +1516,7 @@ function bindTableEvents() {
       if (rows.length <= 1) return; // 保留至少一行
       rows.splice(ri, 1);
       saveTableData(tableId, rows);
-      drawDessertRoute(tableId);
+      initDessertMap(tableId);
       // 局部刷新表格
       const card = btn.closest('.card');
       const actId = card ? card.id.replace('card-', '') : null;
@@ -1530,7 +1540,7 @@ function bindTableEvents() {
       const rows = getTableData(tableId);
       rows.push([]);
       saveTableData(tableId, rows);
-      drawDessertRoute(tableId);
+      initDessertMap(tableId);
       const card = btn.closest('.card');
       const actId = card ? card.id.replace('card-', '') : null;
       if (actId) {
@@ -1547,111 +1557,113 @@ function bindTableEvents() {
   });
 }
 
-// ==================== 卡通路线图 ====================
-function drawDessertRoute(tableId) {
-  const canvas = document.getElementById(`map-${tableId}`);
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width, h = canvas.height;
+// ==================== 真实地图路线 ====================
+let dessertMaps = {}; // 存储 Leaflet 地图实例
 
-  // 清空
-  ctx.clearRect(0, 0, w, h);
+async function initDessertMap(tableId) {
+  const container = document.getElementById(`map-${tableId}`);
+  if (!container) return;
+
+  // 清理旧地图
+  if (dessertMaps[tableId]) {
+    dessertMaps[tableId].remove();
+    delete dessertMaps[tableId];
+  }
+
+  const map = L.map(container).setView([31.2304, 121.4737], 13);
+  dessertMaps[tableId] = map;
+
+  // OpenStreetMap 瓦片（免费，无需 key）
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap',
+    maxZoom: 18
+  }).addTo(map);
 
   const rows = getTableData(tableId).filter(r => r.some(c => c && c.trim()));
   if (rows.length === 0) {
-    ctx.fillStyle = '#D4BCC8';
-    ctx.font = '13px "PingFang SC","Microsoft YaHei",sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('🍰 填好店名后，这里会出现你的甜品探索路线～', w/2, h/2);
+    // 提示文字用 marker 不行，直接用 div 覆盖
+    const hint = document.createElement('div');
+    hint.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#D4BCC8;font-size:13px;text-align:center;z-index:1000;pointer-events:none;background:rgba(255,255,255,0.85);padding:8px 14px;border-radius:10px';
+    hint.textContent = '🍰 填好店名后，这里会出现真实地图路线～';
+    container.appendChild(hint);
     return;
   }
 
-  // 背景装饰
-  ctx.fillStyle = '#FFFBFD';
-  ctx.fillRect(0, 0, w, h);
+  // 地理编码 + 标记
+  const markers = [];
+  const bounds = [];
 
-  // 小糖粒背景
-  const candies = ['🍬','🍭','🍡','🧁','🍪','🍩'];
-  for (let i = 0; i < 8; i++) {
-    ctx.globalAlpha = 0.15;
-    ctx.font = '14px serif';
-    ctx.fillText(candies[i % candies.length], 20 + i * 45, 20 + (i % 3) * 70);
-  }
-  ctx.globalAlpha = 1;
+  for (let i = 0; i < rows.length; i++) {
+    const name = rows[i][0];
+    if (!name || !name.trim()) continue;
 
-  // 计算路径点
-  const margin = 50;
-  const usableW = w - margin * 2;
-  const usableH = h - 40;
-  const points = rows.map((row, i) => ({
-    x: margin + (usableW / (rows.length - 1 || 1)) * i,
-    y: h/2 + Math.sin(i * 1.8) * usableH * 0.3,
-    name: row[0] || '?'
-  }));
-
-  // 画连线
-  ctx.strokeStyle = '#FFB347';
-  ctx.lineWidth = 2.5;
-  ctx.setLineDash([6, 4]);
-  ctx.beginPath();
-  points.forEach((p, i) => {
-    if (i === 0) ctx.moveTo(p.x, p.y);
-    else ctx.lineTo(p.x, p.y);
-  });
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // 画起点标记
-  if (points.length > 0) {
-    ctx.fillStyle = '#FF7EB3';
-    ctx.font = '11px "PingFang SC","Microsoft YaHei",sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('🚩 起点', points[0].x, points[0].y - 35);
+    // 用 Nominatim 免费地理编码
+    const coords = await geocodeShanghai(name.trim());
+    if (coords) {
+      bounds.push([coords.lat, coords.lng]);
+      markers.push({ name, lat: coords.lat, lng: coords.lng, i: i + 1 });
+    }
   }
 
-  // 画每个站点
+  if (markers.length === 0) return;
+
+  // 画标记和连线
+  const latlngs = [];
   const colors = ['#FF7EB3','#FF9A56','#43B7B8','#D4494B','#7B4FBF','#FFB347','#FF6B8A'];
-  points.forEach((p, i) => {
-    // 外圈
-    ctx.fillStyle = colors[i % colors.length];
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 18, 0, Math.PI * 2);
-    ctx.fill();
 
-    // 内圈白
-    ctx.fillStyle = '#FFF';
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 13, 0, Math.PI * 2);
-    ctx.fill();
+  markers.forEach((m, idx) => {
+    latlngs.push([m.lat, m.lng]);
 
-    // 数字
-    ctx.fillStyle = colors[i % colors.length];
-    ctx.font = 'bold 13px "PingFang SC","Microsoft YaHei",sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(i + 1, p.x, p.y);
-
-    // 店名
-    ctx.fillStyle = '#4A3040';
-    ctx.font = '11px "PingFang SC","Microsoft YaHei",sans-serif';
-    const name = p.name.length > 6 ? p.name.slice(0,6)+'…' : p.name;
-    ctx.fillText(name, p.x, p.y + 30);
-
-    // 甜品emoji
-    ctx.font = '12px serif';
-    ctx.fillText('🍰', p.x + 14, p.y - 14);
+    // 彩色圆圈标记
+    const color = colors[idx % colors.length];
+    const icon = L.divIcon({
+      className: 'dessert-marker',
+      html: `<div style="background:${color};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.2);border:2px solid #fff">${m.i}</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+    L.marker([m.lat, m.lng], { icon }).addTo(map)
+      .bindPopup(`<b>${m.name}</b><br>第 ${m.i} 站 🍰`);
   });
 
-  // 终点标记
-  if (points.length > 1) {
-    const last = points[points.length-1];
-    ctx.fillStyle = '#D4494B';
-    ctx.font = '11px "PingFang SC","Microsoft YaHei",sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('🏁', last.x + 22, last.y - 8);
+  // 连线
+  if (latlngs.length > 1) {
+    L.polyline(latlngs, {
+      color: '#FF7EB3',
+      weight: 3,
+      dashArray: '8 6',
+      opacity: 0.8
+    }).addTo(map);
   }
 
-  ctx.textBaseline = 'alphabetic';
+  // 自适应视野
+  if (bounds.length > 0) {
+    map.fitBounds(bounds, { padding: [30, 30] });
+  }
+}
+
+async function geocodeShanghai(name) {
+  // 加缓存避免重复请求
+  const cacheKey = `geo-${name}`;
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  try {
+    const q = encodeURIComponent(`${name} 上海 甜品`);
+    const resp = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1&countrycodes=cn`,
+      { headers: { 'User-Agent': 'BirthdaySurprise/1.0' } }
+    );
+    const data = await resp.json();
+    if (data && data.length > 0) {
+      const result = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      sessionStorage.setItem(cacheKey, JSON.stringify(result));
+      return result;
+    }
+  } catch(e) {
+    console.warn('Geocoding failed for:', name, e);
+  }
+  return null;
 }
 
 // ==================== 拆礼物交互 ====================
