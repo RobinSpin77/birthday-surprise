@@ -1531,7 +1531,6 @@ function escapeHtml(str) {
 
 // 绑定表格事件（在 renderAll 后调用）
 function bindTableEvents() {
-  bindAutocomplete();
   // 输入变化
   document.querySelectorAll('.content-table input').forEach(input => {
     input.addEventListener('change', () => {
@@ -1599,118 +1598,103 @@ function bindTableEvents() {
 }
 
 // ==================== 真实地图路线 ====================
-let dessertMaps = {}; // 存储 Leaflet 地图实例
+let dessertMaps = {};
+let dessertPins = {}; // { tableId: [{lat, lng, name}] }
 
 async function initDessertMap(tableId) {
   const container = document.getElementById(`map-${tableId}`);
   if (!container) return;
 
-  // 清理旧地图
   if (dessertMaps[tableId]) {
     dessertMaps[tableId].remove();
     delete dessertMaps[tableId];
   }
 
-  const map = L.map(container).setView([31.2304, 121.4737], 13);
+  const map = L.map(container, { tap: true }).setView([31.2304, 121.4737], 13);
   dessertMaps[tableId] = map;
 
-  // 高德地图瓦片（国内免费，无需 key）
   L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
     subdomains: '1234',
-    attribution: '&copy; 高德地图',
     maxZoom: 18
   }).addTo(map);
 
-  const rows = getTableData(tableId).filter(r => r.some(c => c && c.trim()));
-  if (rows.length === 0) {
-    // 提示文字用 marker 不行，直接用 div 覆盖
-    const hint = document.createElement('div');
-    hint.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#D4BCC8;font-size:13px;text-align:center;z-index:1000;pointer-events:none;background:rgba(255,255,255,0.85);padding:8px 14px;border-radius:10px';
-    hint.textContent = '🍰 填好店名后，这里会出现真实地图路线～';
-    container.appendChild(hint);
-    return;
-  }
+  // 读取已保存的标记
+  const saved = JSON.parse(localStorage.getItem(`pins-${tableId}`) || '[]');
+  dessertPins[tableId] = saved;
 
-  // 地理编码 + 标记
-  const markers = [];
-  const bounds = [];
-  const savedCoords = JSON.parse(sessionStorage.getItem(`coords-${tableId}`) || '{}');
-
-  for (let i = 0; i < rows.length; i++) {
-    const name = rows[i][0];
-    if (!name || !name.trim()) continue;
-
-    // 优先用搜索选中的精确坐标
-    let coords = savedCoords[i];
-    if (!coords || coords.name !== name.trim()) {
-      // 回退：Nominatim 地理编码
-      coords = await geocodeShanghai(name.trim());
-    }
-    if (coords) {
-      bounds.push([coords.lat, coords.lng]);
-      markers.push({ name, lat: coords.lat, lng: coords.lng, i: i + 1 });
-    }
-  }
-
-  if (markers.length === 0) return;
-
-  // 画标记和连线
-  const latlngs = [];
   const colors = ['#FF7EB3','#FF9A56','#43B7B8','#D4494B','#7B4FBF','#FFB347','#FF6B8A'];
 
-  markers.forEach((m, idx) => {
-    latlngs.push([m.lat, m.lng]);
+  function redrawPins() {
+    // 清除旧标记层
+    map.eachLayer(layer => { if (layer instanceof L.Marker || layer instanceof L.Polyline) map.removeLayer(layer); });
 
-    // 彩色圆圈标记
-    const color = colors[idx % colors.length];
-    const icon = L.divIcon({
-      className: 'dessert-marker',
-      html: `<div style="background:${color};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.2);border:2px solid #fff">${m.i}</div>`,
-      iconSize: [28, 28],
-      iconAnchor: [14, 14]
+    const pins = dessertPins[tableId] || [];
+    const latlngs = [];
+    pins.forEach((pin, idx) => {
+      latlngs.push([pin.lat, pin.lng]);
+      const color = colors[idx % colors.length];
+      const icon = L.divIcon({
+        className: 'dessert-marker',
+        html: `<div style="background:${color};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.2);border:2px solid #fff">${idx+1}</div>`,
+        iconSize: [28, 28], iconAnchor: [14, 14]
+      });
+      const m = L.marker([pin.lat, pin.lng], { icon }).addTo(map);
+      m.bindPopup(`<b>${pin.name}</b><br>第${idx+1}站 🍰<br><a href="#" onclick="deleteDessertPin('${tableId}',${idx});return false;" style="color:#D4494B;font-size:11px;">删除此标记</a>`);
     });
-    L.marker([m.lat, m.lng], { icon }).addTo(map)
-      .bindPopup(`<b>${m.name}</b><br>第 ${m.i} 站 🍰`);
-  });
 
-  // 连线
-  if (latlngs.length > 1) {
-    L.polyline(latlngs, {
-      color: '#FF7EB3',
-      weight: 3,
-      dashArray: '8 6',
-      opacity: 0.8
-    }).addTo(map);
+    if (latlngs.length > 1) {
+      L.polyline(latlngs, { color: '#FF7EB3', weight: 3, dashArray: '8 6', opacity: 0.8 }).addTo(map);
+    }
   }
 
-  // 自适应视野
-  if (bounds.length > 0) {
-    map.fitBounds(bounds, { padding: [30, 30] });
+  // 点击地图放标记
+  map.on('click', (e) => {
+    const name = prompt('🍰 这家甜品店叫什么名字？');
+    if (!name || !name.trim()) return;
+    dessertPins[tableId].push({ lat: e.latlng.lat, lng: e.latlng.lng, name: name.trim() });
+    localStorage.setItem(`pins-${tableId}`, JSON.stringify(dessertPins[tableId]));
+    redrawPins();
+    // 同步到表格
+    syncPinsToTable(tableId);
+    // 删除提示文字
+    const hint = container.querySelector('div');
+    if (hint && hint.textContent.includes('点击地图')) hint.remove();
+  });
+
+  redrawPins();
+
+  // 首次显示提示
+  if (dessertPins[tableId].length === 0) {
+    const hint = document.createElement('div');
+    hint.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#D4BCC8;font-size:13px;text-align:center;z-index:1000;pointer-events:none;background:rgba(255,255,255,0.85);padding:8px 14px;border-radius:10px';
+    hint.textContent = '👆 点击地图标记你的甜品店位置';
+    container.appendChild(hint);
   }
 }
 
-async function geocodeShanghai(name) {
-  // 加缓存避免重复请求
-  const cacheKey = `geo-${name}`;
-  const cached = sessionStorage.getItem(cacheKey);
-  if (cached) return JSON.parse(cached);
+function deleteDessertPin(tableId, idx) {
+  dessertPins[tableId].splice(idx, 1);
+  localStorage.setItem(`pins-${tableId}`, JSON.stringify(dessertPins[tableId]));
+  syncPinsToTable(tableId);
+  initDessertMap(tableId);
+}
 
-  try {
-    const q = encodeURIComponent(`${name} 上海 甜品`);
-    const resp = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1&countrycodes=cn`,
-      { headers: { 'User-Agent': 'BirthdaySurprise/1.0' } }
-    );
-    const data = await resp.json();
-    if (data && data.length > 0) {
-      const result = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-      sessionStorage.setItem(cacheKey, JSON.stringify(result));
-      return result;
+function syncPinsToTable(tableId) {
+  const pins = dessertPins[tableId] || [];
+  const rows = pins.map(p => [p.name, '', '']);
+  if (rows.length === 0) rows.push(['', '', '']);
+  saveTableData(tableId, rows);
+  // 刷新表格 DOM
+  const card = document.querySelector(`.dessert-map[id="map-${tableId}"]`)?.closest('.card');
+  if (card) {
+    const tableWrap = card.querySelector('.content-table-wrap');
+    const actId = card.id.replace('card-', '');
+    const act = activities.find(a => a.id === actId);
+    if (act && tableWrap) {
+      tableWrap.outerHTML = renderEditableTable(act.content.table);
+      bindTableEvents();
     }
-  } catch(e) {
-    console.warn('Geocoding failed for:', name, e);
   }
-  return null;
 }
 
 // ==================== 店名搜索自动补全 ====================
