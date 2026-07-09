@@ -1605,71 +1605,124 @@ async function initDessertMap(tableId) {
   const container = document.getElementById(`map-${tableId}`);
   if (!container) return;
 
+  // 彻底清理：移除旧地图和所有残留
   if (dessertMaps[tableId]) {
     dessertMaps[tableId].remove();
     delete dessertMaps[tableId];
   }
+  container.innerHTML = '';
 
+  // 搜索框
+  const searchWrap = document.createElement('div');
+  searchWrap.style.cssText = 'display:flex;gap:4px;margin-bottom:6px;position:relative;z-index:10;';
+  searchWrap.innerHTML = `
+    <input type="text" id="search-${tableId}" placeholder="🔍 输入店名搜索定位…" style="flex:1;border:1px solid #F0E4EA;border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none;" autocomplete="off">
+    <div id="search-drop-${tableId}" class="autocomplete-dropdown" style="position:absolute;top:100%;left:0;right:0;"></div>
+  `;
+  container.parentElement.insertBefore(searchWrap, container);
+
+  // 地图
   const map = L.map(container, { tap: true }).setView([31.2304, 121.4737], 13);
   dessertMaps[tableId] = map;
 
   L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
-    subdomains: '1234',
-    maxZoom: 18
+    subdomains: '1234', maxZoom: 18
   }).addTo(map);
 
-  // 读取已保存的标记
   const saved = JSON.parse(localStorage.getItem(`pins-${tableId}`) || '[]');
   dessertPins[tableId] = saved;
 
   const colors = ['#FF7EB3','#FF9A56','#43B7B8','#D4494B','#7B4FBF','#FFB347','#FF6B8A'];
 
   function redrawPins() {
-    // 清除旧标记层
     map.eachLayer(layer => { if (layer instanceof L.Marker || layer instanceof L.Polyline) map.removeLayer(layer); });
-
     const pins = dessertPins[tableId] || [];
     const latlngs = [];
     pins.forEach((pin, idx) => {
       latlngs.push([pin.lat, pin.lng]);
-      const color = colors[idx % colors.length];
       const icon = L.divIcon({
         className: 'dessert-marker',
-        html: `<div style="background:${color};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.2);border:2px solid #fff">${idx+1}</div>`,
-        iconSize: [28, 28], iconAnchor: [14, 14]
+        html: `<div style="background:${colors[idx%7]};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.2);border:2px solid #fff">${idx+1}</div>`,
+        iconSize: [28,28], iconAnchor: [14,14]
       });
       const m = L.marker([pin.lat, pin.lng], { icon }).addTo(map);
-      m.bindPopup(`<b>${pin.name}</b><br>第${idx+1}站 🍰<br><a href="#" onclick="deleteDessertPin('${tableId}',${idx});return false;" style="color:#D4494B;font-size:11px;">删除此标记</a>`);
+      m.bindPopup(`<b>${pin.name}</b><br>第${idx+1}站 🍰<br><a href="#" onclick="deleteDessertPin('${tableId}',${idx});return false;" style="color:#D4494B;font-size:11px;">删除</a>`);
     });
-
     if (latlngs.length > 1) {
       L.polyline(latlngs, { color: '#FF7EB3', weight: 3, dashArray: '8 6', opacity: 0.8 }).addTo(map);
     }
   }
 
-  // 点击地图放标记
+  redrawPins();
+  setTimeout(() => map.invalidateSize(), 100);
+
+  // ==== 搜索自动补全 ====
+  const searchInput = document.getElementById(`search-${tableId}`);
+  const searchDrop = document.getElementById(`search-drop-${tableId}`);
+  let searchTimer = null;
+
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    const q = searchInput.value.trim();
+    if (q.length < 2) { searchDrop.classList.remove('show'); searchDrop.innerHTML = ''; return; }
+    searchDrop.classList.add('show');
+    searchDrop.innerHTML = '<div class="autocomplete-loading">🔍 搜索中…</div>';
+    searchTimer = setTimeout(async () => {
+      try {
+        const resp = await fetch(
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(q + ' 上海')}&limit=5&lang=zh`,
+          { headers: { 'Accept': 'application/json' } }
+        );
+        const data = await resp.json();
+        const features = data.features || [];
+        if (features.length === 0) {
+          searchDrop.innerHTML = '<div class="autocomplete-loading">未找到，试试更具体的名字，或直接点地图标记</div>';
+          return;
+        }
+        searchDrop.innerHTML = features.map(f => {
+          const name = f.properties.name || f.properties.street || '未知';
+          const addr = [f.properties.city, f.properties.district, f.properties.street].filter(Boolean).join(' ');
+          const lat = f.geometry.coordinates[1];
+          const lon = f.geometry.coordinates[0];
+          return `<div class="autocomplete-item" data-lat="${lat}" data-lon="${lon}" data-name="${escapeHtml(name)}">
+            <div class="ac-name">📍 ${escapeHtml(name)}</div>
+            <div class="ac-addr">${escapeHtml(addr || '上海')}</div>
+          </div>`;
+        }).join('');
+        searchDrop.querySelectorAll('.autocomplete-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const name = item.dataset.name;
+            const lat = parseFloat(item.dataset.lat);
+            const lon = parseFloat(item.dataset.lon);
+            dessertPins[tableId].push({ lat, lng: lon, name });
+            localStorage.setItem(`pins-${tableId}`, JSON.stringify(dessertPins[tableId]));
+            redrawPins();
+            syncPinsToTable(tableId);
+            searchInput.value = '';
+            searchDrop.classList.remove('show');
+            searchDrop.innerHTML = '';
+            map.setView([lat, lon], 15);
+          });
+        });
+      } catch(e) {
+        searchDrop.innerHTML = '<div class="autocomplete-loading">搜索暂不可用，请直接在地图上点击标记位置</div>';
+      }
+    }, 400);
+  });
+
+  searchInput.addEventListener('blur', () => {
+    setTimeout(() => { searchDrop.classList.remove('show'); searchDrop.innerHTML = ''; }, 200);
+  });
+
+  // ==== 点击地图放标记（备用） ====
   map.on('click', (e) => {
     const name = prompt('🍰 这家甜品店叫什么名字？');
     if (!name || !name.trim()) return;
     dessertPins[tableId].push({ lat: e.latlng.lat, lng: e.latlng.lng, name: name.trim() });
     localStorage.setItem(`pins-${tableId}`, JSON.stringify(dessertPins[tableId]));
     redrawPins();
-    // 同步到表格
     syncPinsToTable(tableId);
-    // 删除提示文字
-    const hint = container.querySelector('div');
-    if (hint && hint.textContent.includes('点击地图')) hint.remove();
   });
-
-  redrawPins();
-
-  // 首次显示提示
-  if (dessertPins[tableId].length === 0) {
-    const hint = document.createElement('div');
-    hint.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#D4BCC8;font-size:13px;text-align:center;z-index:1000;pointer-events:none;background:rgba(255,255,255,0.85);padding:8px 14px;border-radius:10px';
-    hint.textContent = '👆 点击地图标记你的甜品店位置';
-    container.appendChild(hint);
-  }
 }
 
 function deleteDessertPin(tableId, idx) {
@@ -1684,7 +1737,6 @@ function syncPinsToTable(tableId) {
   const rows = pins.map(p => [p.name, '', '']);
   if (rows.length === 0) rows.push(['', '', '']);
   saveTableData(tableId, rows);
-  // 刷新表格 DOM
   const card = document.querySelector(`.dessert-map[id="map-${tableId}"]`)?.closest('.card');
   if (card) {
     const tableWrap = card.querySelector('.content-table-wrap');
