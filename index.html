@@ -518,6 +518,41 @@ body {
   background: #f5f0eb;
 }
 
+/* Autocomplete dropdown */
+.autocomplete-wrap { position: relative; }
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--pink-light);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 50;
+  display: none;
+  font-size: 12px;
+}
+.autocomplete-dropdown.show { display: block; }
+.autocomplete-item {
+  padding: 8px 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #FEE4EC;
+  line-height: 1.4;
+}
+.autocomplete-item:last-child { border-bottom: none; }
+.autocomplete-item:hover { background: var(--pink-bg); }
+.autocomplete-item .ac-name { font-weight: 600; color: var(--text); }
+.autocomplete-item .ac-addr { font-size: 11px; color: var(--text-light); }
+.autocomplete-loading {
+  padding: 8px 10px;
+  color: var(--text-light);
+  font-size: 12px;
+  text-align: center;
+}
+
 /* Content: Dessert Tour */
 .content-stops {
   display: flex;
@@ -1466,7 +1501,12 @@ function renderEditableTable(tableCfg) {
   rows.forEach((row, ri) => {
     html += '<tr>';
     cols.forEach((col, ci) => {
-      html += `<td><input type="text" placeholder="${col}" value="${escapeHtml(row[ci] || '')}" data-table="${escapeHtml(tableId)}" data-row="${ri}" data-col="${ci}"></td>`;
+      if (ci === 0) {
+        // 店名列：带搜索自动补全
+        html += `<td class="autocomplete-wrap"><input type="text" placeholder="${col}" value="${escapeHtml(row[ci] || '')}" data-table="${escapeHtml(tableId)}" data-row="${ri}" data-col="${ci}" class="ac-input" autocomplete="off"><div class="autocomplete-dropdown" data-table="${escapeHtml(tableId)}" data-row="${ri}"></div></td>`;
+      } else {
+        html += `<td><input type="text" placeholder="${col}" value="${escapeHtml(row[ci] || '')}" data-table="${escapeHtml(tableId)}" data-row="${ri}" data-col="${ci}"></td>`;
+      }
     });
     html += `<td><button class="table-delete-btn" data-table="${escapeHtml(tableId)}" data-row="${ri}" title="删除">✕</button></td>`;
     html += '</tr>';
@@ -1491,6 +1531,7 @@ function escapeHtml(str) {
 
 // 绑定表格事件（在 renderAll 后调用）
 function bindTableEvents() {
+  bindAutocomplete();
   // 输入变化
   document.querySelectorAll('.content-table input').forEach(input => {
     input.addEventListener('change', () => {
@@ -1573,9 +1614,10 @@ async function initDessertMap(tableId) {
   const map = L.map(container).setView([31.2304, 121.4737], 13);
   dessertMaps[tableId] = map;
 
-  // OpenStreetMap 瓦片（免费，无需 key）
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap',
+  // 高德地图瓦片（国内免费，无需 key）
+  L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+    subdomains: '1234',
+    attribution: '&copy; 高德地图',
     maxZoom: 18
   }).addTo(map);
 
@@ -1592,13 +1634,18 @@ async function initDessertMap(tableId) {
   // 地理编码 + 标记
   const markers = [];
   const bounds = [];
+  const savedCoords = JSON.parse(sessionStorage.getItem(`coords-${tableId}`) || '{}');
 
   for (let i = 0; i < rows.length; i++) {
     const name = rows[i][0];
     if (!name || !name.trim()) continue;
 
-    // 用 Nominatim 免费地理编码
-    const coords = await geocodeShanghai(name.trim());
+    // 优先用搜索选中的精确坐标
+    let coords = savedCoords[i];
+    if (!coords || coords.name !== name.trim()) {
+      // 回退：Nominatim 地理编码
+      coords = await geocodeShanghai(name.trim());
+    }
     if (coords) {
       bounds.push([coords.lat, coords.lng]);
       markers.push({ name, lat: coords.lat, lng: coords.lng, i: i + 1 });
@@ -1666,7 +1713,72 @@ async function geocodeShanghai(name) {
   return null;
 }
 
-// ==================== 拆礼物交互 ====================
+// ==================== 店名搜索自动补全 ====================
+let acTimer = null;
+
+function bindAutocomplete() {
+  document.querySelectorAll('.ac-input').forEach(input => {
+    if (input.dataset.acBound) return;
+    input.dataset.acBound = '1';
+
+    const dropdown = input.parentElement.querySelector('.autocomplete-dropdown');
+    if (!dropdown) return;
+
+    input.addEventListener('input', () => {
+      clearTimeout(acTimer);
+      const q = input.value.trim();
+      if (q.length < 2) { dropdown.classList.remove('show'); return; }
+
+      dropdown.classList.add('show');
+      dropdown.innerHTML = '<div class="autocomplete-loading">🔍 搜索中…</div>';
+
+      acTimer = setTimeout(async () => {
+        try {
+          const resp = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ' 上海')}&limit=5&countrycodes=cn&accept-language=zh`,
+            { headers: { 'User-Agent': 'BirthdaySurprise/1.0' } }
+          );
+          const results = await resp.json();
+
+          if (results.length === 0) {
+            dropdown.innerHTML = '<div class="autocomplete-loading">未找到匹配地点，请输入更具体的名称</div>';
+            return;
+          }
+
+          dropdown.innerHTML = results.map(r => `
+            <div class="autocomplete-item" data-name="${escapeHtml(r.display_name.split(',')[0])}" data-lat="${r.lat}" data-lon="${r.lon}">
+              <div class="ac-name">📍 ${escapeHtml(r.display_name.split(',')[0])}</div>
+              <div class="ac-addr">${escapeHtml(r.display_name.split(',').slice(1,4).join('，'))}</div>
+            </div>
+          `).join('');
+
+          // 点击选中
+          dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+            item.addEventListener('click', () => {
+              input.value = item.dataset.name;
+              dropdown.classList.remove('show');
+              // 保存坐标
+              const tableId = input.dataset.table;
+              const ri = parseInt(input.dataset.row);
+              const coords = JSON.parse(sessionStorage.getItem(`coords-${tableId}`) || '{}');
+              coords[ri] = { lat: parseFloat(item.dataset.lat), lng: parseFloat(item.dataset.lon), name: item.dataset.name };
+              sessionStorage.setItem(`coords-${tableId}`, JSON.stringify(coords));
+              // 触发 change 更新地图
+              input.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+          });
+        } catch(e) {
+          dropdown.innerHTML = '<div class="autocomplete-loading">搜索失败，请手动输入店名</div>';
+        }
+      }, 400);
+    });
+
+    // 点击别处关闭
+    input.addEventListener('blur', () => {
+      setTimeout(() => dropdown.classList.remove('show'), 200);
+    });
+  });
+}
 function openCard(id) {
   const card = document.getElementById(`card-${id}`);
   if (!card || !card.classList.contains('unlocked-unopened')) return;
