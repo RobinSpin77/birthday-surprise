@@ -499,6 +499,15 @@ body {
 }
 .table-delete-btn:hover { opacity: 1; }
 
+.dessert-map-canvas {
+  width: 100%;
+  max-width: 360px;
+  display: block;
+  margin: 12px auto 0;
+  border-radius: 14px;
+  background: #FFFBFD;
+}
+
 /* Content: Dessert Tour */
 .content-stops {
   display: flex;
@@ -1456,6 +1465,13 @@ function renderEditableTable(tableCfg) {
   html += '</tbody></table>';
   html += `<button class="table-add-btn" data-table="${escapeHtml(tableId)}">${tableCfg.addLabel || '➕ 添加一行'}</button>`;
   html += '</div>';
+
+  // 卡通路线图
+  html += `<canvas class="dessert-map-canvas" id="map-${escapeHtml(tableId)}" width="360" height="200"></canvas>`;
+
+  // 初始化画路线
+  setTimeout(() => drawDessertRoute(tableId), 100);
+
   return html;
 }
 
@@ -1477,6 +1493,7 @@ function bindTableEvents() {
       // 清理空尾行
       while (rows.length > 1 && rows[rows.length-1].every(c => !c)) rows.pop();
       saveTableData(tableId, rows);
+      drawDessertRoute(tableId);
     });
   });
 
@@ -1489,6 +1506,7 @@ function bindTableEvents() {
       if (rows.length <= 1) return; // 保留至少一行
       rows.splice(ri, 1);
       saveTableData(tableId, rows);
+      drawDessertRoute(tableId);
       // 局部刷新表格
       const card = btn.closest('.card');
       const actId = card ? card.id.replace('card-', '') : null;
@@ -1512,6 +1530,7 @@ function bindTableEvents() {
       const rows = getTableData(tableId);
       rows.push([]);
       saveTableData(tableId, rows);
+      drawDessertRoute(tableId);
       const card = btn.closest('.card');
       const actId = card ? card.id.replace('card-', '') : null;
       if (actId) {
@@ -1526,6 +1545,113 @@ function bindTableEvents() {
       }
     });
   });
+}
+
+// ==================== 卡通路线图 ====================
+function drawDessertRoute(tableId) {
+  const canvas = document.getElementById(`map-${tableId}`);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+
+  // 清空
+  ctx.clearRect(0, 0, w, h);
+
+  const rows = getTableData(tableId).filter(r => r.some(c => c && c.trim()));
+  if (rows.length === 0) {
+    ctx.fillStyle = '#D4BCC8';
+    ctx.font = '13px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🍰 填好店名后，这里会出现你的甜品探索路线～', w/2, h/2);
+    return;
+  }
+
+  // 背景装饰
+  ctx.fillStyle = '#FFFBFD';
+  ctx.fillRect(0, 0, w, h);
+
+  // 小糖粒背景
+  const candies = ['🍬','🍭','🍡','🧁','🍪','🍩'];
+  for (let i = 0; i < 8; i++) {
+    ctx.globalAlpha = 0.15;
+    ctx.font = '14px serif';
+    ctx.fillText(candies[i % candies.length], 20 + i * 45, 20 + (i % 3) * 70);
+  }
+  ctx.globalAlpha = 1;
+
+  // 计算路径点
+  const margin = 50;
+  const usableW = w - margin * 2;
+  const usableH = h - 40;
+  const points = rows.map((row, i) => ({
+    x: margin + (usableW / (rows.length - 1 || 1)) * i,
+    y: h/2 + Math.sin(i * 1.8) * usableH * 0.3,
+    name: row[0] || '?'
+  }));
+
+  // 画连线
+  ctx.strokeStyle = '#FFB347';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  });
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 画起点标记
+  if (points.length > 0) {
+    ctx.fillStyle = '#FF7EB3';
+    ctx.font = '11px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🚩 起点', points[0].x, points[0].y - 35);
+  }
+
+  // 画每个站点
+  const colors = ['#FF7EB3','#FF9A56','#43B7B8','#D4494B','#7B4FBF','#FFB347','#FF6B8A'];
+  points.forEach((p, i) => {
+    // 外圈
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 18, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 内圈白
+    ctx.fillStyle = '#FFF';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 13, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 数字
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.font = 'bold 13px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i + 1, p.x, p.y);
+
+    // 店名
+    ctx.fillStyle = '#4A3040';
+    ctx.font = '11px "PingFang SC","Microsoft YaHei",sans-serif';
+    const name = p.name.length > 6 ? p.name.slice(0,6)+'…' : p.name;
+    ctx.fillText(name, p.x, p.y + 30);
+
+    // 甜品emoji
+    ctx.font = '12px serif';
+    ctx.fillText('🍰', p.x + 14, p.y - 14);
+  });
+
+  // 终点标记
+  if (points.length > 1) {
+    const last = points[points.length-1];
+    ctx.fillStyle = '#D4494B';
+    ctx.font = '11px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🏁', last.x + 22, last.y - 8);
+  }
+
+  ctx.textBaseline = 'alphabetic';
 }
 
 // ==================== 拆礼物交互 ====================
