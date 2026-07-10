@@ -1656,76 +1656,62 @@ async function initDessertMap(tableId) {
   redrawPins();
   setTimeout(() => map.invalidateSize(), 100);
 
-  // ==== 本地搜索自动补全（上海甜品热门地段） ====
+  // ==== 高德 POI 搜索自动补全 ====
   const searchInput = document.getElementById(`search-${tableId}`);
   const searchDrop = document.getElementById(`search-drop-${tableId}`);
-
-  // 本地 POI 数据库（不依赖外部 API）
-  const shanghaiDB = [
-    { name:'南京西路', area:'静安区', lat:31.2308, lng:121.4554 },
-    { name:'永康路', area:'徐汇区', lat:31.2115, lng:121.4512 },
-    { name:'愚园路', area:'静安区', lat:31.2248, lng:121.4325 },
-    { name:'武康路', area:'徐汇区', lat:31.2098, lng:121.4392 },
-    { name:'安福路', area:'徐汇区', lat:31.2120, lng:121.4378 },
-    { name:'富民路', area:'静安区', lat:31.2185, lng:121.4489 },
-    { name:'巨鹿路', area:'静安区', lat:31.2180, lng:121.4520 },
-    { name:'长乐路', area:'徐汇区', lat:31.2155, lng:121.4470 },
-    { name:'新天地', area:'黄浦区', lat:31.2192, lng:121.4750 },
-    { name:'田子坊', area:'黄浦区', lat:31.2085, lng:121.4698 },
-    { name:'外滩', area:'黄浦区', lat:31.2400, lng:121.4905 },
-    { name:'陆家嘴', area:'浦东新区', lat:31.2357, lng:121.5017 },
-    { name:'淮海中路', area:'徐汇区', lat:31.2175, lng:121.4620 },
-    { name:'陕西南路', area:'静安区', lat:31.2215, lng:121.4550 },
-    { name:'建国西路', area:'徐汇区', lat:31.2070, lng:121.4520 },
-    { name:'思南路', area:'黄浦区', lat:31.2150, lng:121.4680 },
-    { name:'大学路', area:'杨浦区', lat:31.2960, lng:121.5090 },
-    { name:'虹泉路', area:'闵行区', lat:31.1740, lng:121.3680 },
-    { name:'番禺路', area:'长宁区', lat:31.2130, lng:121.4240 },
-    { name:'幸福里', area:'长宁区', lat:31.2125, lng:121.4230 },
-    { name:'静安寺', area:'静安区', lat:31.2250, lng:121.4460 },
-    { name:'徐家汇', area:'徐汇区', lat:31.1950, lng:121.4370 },
-    { name:'打浦桥', area:'黄浦区', lat:31.2070, lng:121.4680 },
-    { name:'五角场', area:'杨浦区', lat:31.2980, lng:121.5150 },
-    { name:'中山公园', area:'长宁区', lat:31.2200, lng:121.4160 },
-  ];
+  let searchTimer = null;
+  const amapKey = config.amapKey || '';
 
   searchInput.addEventListener('input', () => {
-    const q = searchInput.value.trim().toLowerCase();
+    clearTimeout(searchTimer);
+    const q = searchInput.value.trim();
     if (q.length < 1) { searchDrop.classList.remove('show'); searchDrop.innerHTML = ''; return; }
-
-    const matches = shanghaiDB.filter(p =>
-      p.name.toLowerCase().includes(q) || p.area.toLowerCase().includes(q)
-    ).slice(0, 8);
-
-    if (matches.length === 0) {
-      searchDrop.classList.add('show');
-      searchDrop.innerHTML = '<div class="autocomplete-loading">未匹配到预设地点，请直接在地图上点击标记</div>';
-      return;
-    }
-
     searchDrop.classList.add('show');
-    searchDrop.innerHTML = matches.map(p => `
-      <div class="autocomplete-item" data-lat="${p.lat}" data-lng="${p.lng}" data-name="${escapeHtml(p.name)}">
-        <div class="ac-name">📍 ${escapeHtml(p.name)}</div>
-        <div class="ac-addr">${escapeHtml(p.area)}</div>
-      </div>
-    `).join('');
+    searchDrop.innerHTML = '<div class="autocomplete-loading">🔍 搜索中…</div>';
+    searchTimer = setTimeout(async () => {
+      try {
+        const resp = await fetch(
+          `https://restapi.amap.com/v3/assistant/inputtips?keywords=${encodeURIComponent(q)}&city=上海&key=${amapKey}&output=JSON`
+        );
+        const data = await resp.json();
+        if (!data.tips || data.tips.length === 0) {
+          searchDrop.innerHTML = '<div class="autocomplete-loading">未找到，试试其他关键词，或直接点地图</div>';
+          return;
+        }
+        // 过滤掉没有坐标的
+        const valid = data.tips.filter(t => t.location && t.location.includes(','));
+        if (valid.length === 0) {
+          searchDrop.innerHTML = '<div class="autocomplete-loading">未找到精确位置，请直接在地图上点击标记</div>';
+          return;
+        }
+        searchDrop.innerHTML = valid.map(t => {
+          const [lng, lat] = t.location.split(',').map(Number);
+          const district = t.district || '';
+          return `<div class="autocomplete-item" data-lat="${lat}" data-lng="${lng}" data-name="${escapeHtml(t.name)}">
+            <div class="ac-name">📍 ${escapeHtml(t.name)}</div>
+            <div class="ac-addr">${escapeHtml(district + ' ' + (t.address || ''))}</div>
+          </div>`;
+        }).join('');
 
-    searchDrop.querySelectorAll('.autocomplete-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const name = item.dataset.name;
-        const lat = parseFloat(item.dataset.lat);
-        const lng = parseFloat(item.dataset.lng);
-        dessertPins[tableId].push({ lat, lng, name });
-        localStorage.setItem(`pins-${tableId}`, JSON.stringify(dessertPins[tableId]));
-        redrawPins();
-        syncPinsToTable(tableId);
-        searchInput.value = '';
-        searchDrop.classList.remove('show');
-        searchDrop.innerHTML = '';
-        map.setView([lat, lng], 15);
-      });
-    });
+        searchDrop.querySelectorAll('.autocomplete-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const name = item.dataset.name;
+            const lat = parseFloat(item.dataset.lat);
+            const lng = parseFloat(item.dataset.lng);
+            dessertPins[tableId].push({ lat, lng, name });
+            localStorage.setItem(`pins-${tableId}`, JSON.stringify(dessertPins[tableId]));
+            redrawPins();
+            syncPinsToTable(tableId);
+            searchInput.value = '';
+            searchDrop.classList.remove('show');
+            searchDrop.innerHTML = '';
+            map.setView([lat, lng], 16);
+          });
+        });
+      } catch(e) {
+        searchDrop.innerHTML = '<div class="autocomplete-loading">搜索失败，请直接在地图上点击标记</div>';
+      }
+    }, 300);
   });
 
   searchInput.addEventListener('blur', () => {
